@@ -3,15 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myemg/app/app.dart';
 import 'package:myemg/core/theme/app_colors.dart';
+import 'package:myemg/features/devices/presentation/controllers/device_connection_controller.dart';
 import 'package:myemg/features/training/domain/entities/session_summary.dart';
 import 'package:myemg/features/training/domain/entities/training_state.dart';
 import 'package:myemg/features/training/presentation/widgets/action_ranking_card.dart';
 import 'package:myemg/features/training/presentation/widgets/activation_panel.dart';
+import 'package:myemg/features/training/presentation/widgets/emg_recalibration_dialog.dart';
 import 'package:myemg/features/training/presentation/widgets/exercise_selector.dart';
 import 'package:myemg/features/training/presentation/widgets/live_summary_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   const phoneSizes = [Size(360, 800), Size(390, 844), Size(430, 932)];
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   for (final size in phoneSizes) {
     testWidgets('shows the mobile training page at ${size.width}', (
@@ -25,13 +32,184 @@ void main() {
       await tester.pumpWidget(const ProviderScope(child: MyEmgApp()));
 
       expect(find.text('Training'), findsWidgets);
-      expect(find.text('Bilateral Performance'), findsOneWidget);
-      expect(find.text('Left Bicep'), findsOneWidget);
-      expect(find.text('Right Bicep'), findsOneWidget);
+      expect(find.text('Live biceps activation'), findsOneWidget);
+      expect(find.text('Biceps Activation'), findsOneWidget);
+      expect(find.text('Biceps'), findsOneWidget);
+      expect(find.text('No EMG connected'), findsWidgets);
+      expect(find.textContaining('bilateral'), findsNothing);
       expect(find.text('Start Session'), findsOneWidget);
-      expect(find.text('Devices'), findsOneWidget);
+      expect(find.text('Recalibrate EMG'), findsOneWidget);
+      expect(find.byIcon(Icons.home_rounded), findsOneWidget);
     });
   }
+
+  testWidgets('uses two-tab navigation and opens the device page', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyEmgApp()));
+
+    expect(find.text('Training'), findsWidgets);
+    expect(find.byIcon(Icons.home_rounded), findsOneWidget);
+    expect(find.text('History'), findsNothing);
+    expect(find.text('Settings'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.home_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('EMG Device'), findsOneWidget);
+    expect(find.text('My_EMG'), findsOneWidget);
+    expect(find.text('Connect'), findsOneWidget);
+    expect(find.text('Left Device'), findsNothing);
+    expect(find.text('Right Device'), findsNothing);
+    expect(find.textContaining('DEBUG'), findsNothing);
+  });
+
+  testWidgets('asks for a connection before starting a session', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyEmgApp()));
+
+    await tester.tap(find.text('Start Session'));
+    await tester.pump();
+
+    expect(
+      find.text('Connect My_EMG before starting a session.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('starts training only after session calibration completes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deviceConnectionControllerProvider.overrideWith(
+            _ConnectedDeviceConnectionController.new,
+          ),
+        ],
+        child: const MyEmgApp(),
+      ),
+    );
+
+    await tester.tap(find.text('Start Session'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Prepare Session'), findsOneWidget);
+    expect(find.text('Start Calibration'), findsOneWidget);
+    expect(find.text('Pause Session'), findsNothing);
+
+    await tester.tap(find.text('Start Calibration'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Get ready'), findsOneWidget);
+    expect(find.text('Pause Session'), findsNothing);
+
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    expect(find.text('Calibration complete'), findsOneWidget);
+    expect(find.text('Pause Session'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Pause Session'), findsOneWidget);
+    expect(find.text('Prepare Session'), findsNothing);
+  });
+
+  testWidgets('shows a failure when recalibrating without a connection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyEmgApp()));
+
+    await tester.tap(find.text('Recalibrate EMG'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start Recalibration'), findsOneWidget);
+    await tester.tap(find.text('Start Recalibration'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Failed to send recalibration command. Please reconnect My_EMG.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows every successful recalibration stage', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return TextButton(
+              onPressed: () => showEmgRecalibrationGuideDialog(
+                context: context,
+                onStartRecalibration: () async => true,
+              ),
+              child: const Text('Open guide'),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open guide'));
+    await tester.pumpAndSettle();
+    expect(find.text('Recalibrate EMG'), findsOneWidget);
+
+    await tester.tap(find.text('Start Recalibration'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Get ready'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('recalibration-countdown-warmup')),
+          )
+          .data,
+      '2',
+    );
+
+    for (var i = 0; i < 2; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    expect(find.text('Relax'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('recalibration-countdown-relax')),
+          )
+          .data,
+      '3',
+    );
+
+    for (var i = 0; i < 3; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    expect(find.text('Max contraction'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+              const ValueKey('recalibration-countdown-maxContraction'),
+            ),
+          )
+          .data,
+      '5',
+    );
+
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    expect(find.text('Calibration complete'), findsOneWidget);
+    expect(find.text('You can start training now.'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+  });
 
   testWidgets('adds and renames custom actions', (tester) async {
     await tester.pumpWidget(
@@ -115,7 +293,7 @@ void main() {
     final decoded = SessionSummary.fromJson(summary.toJson());
 
     expect(decoded.exerciseName, 'Curl');
-    expect(decoded.averageActivation, 72);
+    expect(decoded.averageActivation, 73);
     expect(decoded.peakActivation, 95);
     expect(decoded.createdAt, createdAt);
   });
@@ -147,7 +325,7 @@ void main() {
     );
 
     expect(state.sortedActionRankings, hasLength(1));
-    expect(state.sortedActionRankings.single.averageActivation, 75);
+    expect(state.sortedActionRankings.single.averageActivation, 80);
   });
 
   testWidgets('shows action ranking rows', (tester) async {
@@ -176,7 +354,7 @@ void main() {
     expect(find.text('Action Ranking'), findsOneWidget);
     expect(find.text('Clear All'), findsOneWidget);
     expect(find.text('High'), findsOneWidget);
-    expect(find.text('75%'), findsOneWidget);
+    expect(find.text('80%'), findsOneWidget);
     expect(find.text('95%'), findsOneWidget);
   });
 
@@ -189,23 +367,12 @@ void main() {
               padding: EdgeInsets.all(12),
               child: Column(
                 children: [
-                  LiveSummaryCard(
-                    state: TrainingState(
-                      leftActivation: 0,
-                      rightActivation: 100,
-                      leftAverage: 0,
-                      rightAverage: 100,
-                      rightPeak: 100,
-                      sampleCount: 1,
-                    ),
-                  ),
+                  LiveSummaryCard(state: TrainingState()),
                   SizedBox(height: 12),
                   LiveSummaryCard(
                     state: TrainingState(
                       leftActivation: 100,
-                      rightActivation: 0,
                       leftAverage: 100,
-                      rightAverage: 0,
                       leftPeak: 100,
                       sampleCount: 1,
                     ),
@@ -218,8 +385,9 @@ void main() {
       ),
     );
 
-    expect(find.text('R 100%'), findsOneWidget);
-    expect(find.text('L 100%'), findsOneWidget);
+    expect(find.text('100%'), findsWidgets);
+    expect(find.textContaining('L '), findsNothing);
+    expect(find.textContaining('R '), findsNothing);
     expect(find.text('Live Summary'), findsNWidgets(2));
   });
 
@@ -231,28 +399,12 @@ void main() {
             child: SizedBox(
               width: 360,
               height: 360,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ActivationPanel(
-                      side: 'Left',
-                      value: 0,
-                      peak: 0,
-                      average: 0,
-                      color: AppColors.orange,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: ActivationPanel(
-                      side: 'Right',
-                      value: 100,
-                      peak: 100,
-                      average: 100,
-                      color: AppColors.blue,
-                    ),
-                  ),
-                ],
+              child: ActivationPanel(
+                side: 'Biceps',
+                value: 100,
+                peak: 100,
+                average: 100,
+                color: AppColors.orange,
               ),
             ),
           ),
@@ -260,8 +412,27 @@ void main() {
       ),
     );
 
-    expect(find.text('Left Bicep'), findsOneWidget);
-    expect(find.text('Right Bicep'), findsOneWidget);
+    expect(find.text('Biceps'), findsOneWidget);
     expect(find.text('100'), findsOneWidget);
   });
+}
+
+class _ConnectedDeviceConnectionController extends DeviceConnectionController {
+  @override
+  DeviceConnectionState build() {
+    return const DeviceConnectionState(
+      leftDevice: EmgDeviceConnection(
+        side: DeviceSide.left,
+        displayName: 'My_EMG',
+        connected: true,
+      ),
+      rightDevice: EmgDeviceConnection(
+        side: DeviceSide.right,
+        displayName: 'Unused',
+      ),
+    );
+  }
+
+  @override
+  Future<bool> sendRecalibrateCommand() async => true;
 }

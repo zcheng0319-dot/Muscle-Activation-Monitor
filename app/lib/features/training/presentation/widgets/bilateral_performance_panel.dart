@@ -8,9 +8,14 @@ import 'package:myemg/features/training/presentation/widgets/raw_waveform_dialog
 import 'package:myemg/shared/widgets/dashboard_card.dart';
 
 class BilateralPerformancePanel extends StatelessWidget {
-  const BilateralPerformancePanel({required this.state, super.key});
+  const BilateralPerformancePanel({
+    required this.state,
+    required this.leftConnected,
+    super.key,
+  });
 
   final TrainingState state;
+  final bool leftConnected;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +32,7 @@ class BilateralPerformancePanel extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Bilateral Performance',
+                      'Biceps Activation',
                       style: AppTypography.sectionTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -78,8 +83,10 @@ class BilateralPerformancePanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Real-time bilateral muscle load',
+              Text(
+                leftConnected
+                    ? 'Real-time muscle load'
+                    : 'Connect an EMG device to begin',
                 style: AppTypography.label,
               ),
               Align(
@@ -87,39 +94,30 @@ class BilateralPerformancePanel extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: () => showDialog<void>(
                     context: context,
-                    builder: (_) =>
-                        RawWaveformDialog(samples: state.rawSamples),
+                    builder: (_) => const RawWaveformDialog(),
                   ),
-                  icon: const Icon(Icons.show_chart_rounded, size: 18),
+                  icon: const Icon(Icons.show_chart_rounded, size: 16),
                   label: const Text('View Raw Waveform'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: AppSpacing.xs,
+                    ),
+                    textStyle: AppTypography.label.copyWith(fontSize: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 height: panelHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: ActivationPanel(
-                        side: 'Left',
-                        value: state.leftActivation,
-                        peak: state.leftPeak,
-                        average: state.leftAverage,
-                        color: AppColors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: ActivationPanel(
-                        side: 'Right',
-                        value: state.rightActivation,
-                        peak: state.rightPeak,
-                        average: state.rightAverage,
-                        color: AppColors.blue,
-                      ),
-                    ),
-                  ],
+                child: ActivationPanel(
+                  side: 'Biceps',
+                  value: leftConnected ? state.leftActivation : 0,
+                  peak: leftConnected ? state.leftPeak : 0,
+                  average: leftConnected ? state.leftAverage : 0,
+                  color: AppColors.orange,
+                  connected: leftConnected,
                 ),
               ),
             ],

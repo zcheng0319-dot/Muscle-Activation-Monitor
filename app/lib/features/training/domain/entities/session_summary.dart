@@ -21,9 +21,9 @@ class SessionSummary {
   final int balanceScore;
   final DateTime? createdAt;
 
-  int get averageActivation => ((leftAverage + rightAverage) / 2).round();
+  int get averageActivation => leftAverage.round();
 
-  int get peakActivation => leftPeak > rightPeak ? leftPeak : rightPeak;
+  int get peakActivation => leftPeak;
 
   SessionSummary copyWith({String? exerciseName}) {
     return SessionSummary(

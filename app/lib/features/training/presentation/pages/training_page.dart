@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:myemg/core/theme/app_colors.dart';
 import 'package:myemg/core/theme/app_spacing.dart';
+import 'package:myemg/features/devices/presentation/controllers/device_connection_controller.dart';
 import 'package:myemg/features/training/presentation/controllers/training_controller.dart';
 import 'package:myemg/features/training/presentation/widgets/action_ranking_card.dart';
 import 'package:myemg/features/training/presentation/widgets/bilateral_performance_panel.dart';
@@ -18,47 +18,49 @@ class TrainingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(trainingControllerProvider);
-    final bottomContentPadding = 144 + MediaQuery.paddingOf(context).bottom;
+    final deviceState = ref.watch(deviceConnectionControllerProvider);
 
-    return Scaffold(
-      extendBody: true,
-      body: AmbientBackground(
-        child: SafeArea(
-          bottom: false,
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.md,
-                  AppSpacing.md,
-                  bottomContentPadding,
-                ),
-                sliver: SliverList.list(
-                  children: [
-                    const TrainingHeader(),
-                    const SizedBox(height: AppSpacing.lg),
-                    const ExerciseSelector(),
-                    const SizedBox(height: AppSpacing.xl),
-                    BilateralPerformancePanel(state: state),
-                    const SizedBox(height: AppSpacing.lg),
-                    LiveSummaryCard(state: state),
-                    const SizedBox(height: AppSpacing.md),
-                    ActionRankingCard(
-                      rankings: state.sortedActionRankings,
-                      canClearAll: state.actionRankings.isNotEmpty,
-                      onClearAll: () => _confirmClearRankings(context, ref),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    const DeviceStatusCard(),
-                  ],
-                ),
+    return AmbientBackground(
+      child: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          key: const ValueKey('training-scroll-view'),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxl,
               ),
-            ],
-          ),
+              sliver: SliverList.list(
+                children: [
+                  const TrainingHeader(),
+                  const SizedBox(height: AppSpacing.lg),
+                  const ExerciseSelector(),
+                  const SizedBox(height: AppSpacing.md),
+                  const SessionControls(),
+                  const SizedBox(height: AppSpacing.xl),
+                  BilateralPerformancePanel(
+                    state: state,
+                    leftConnected: deviceState.leftDevice.connected,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  LiveSummaryCard(state: state),
+                  const SizedBox(height: AppSpacing.md),
+                  ActionRankingCard(
+                    rankings: state.sortedActionRankings,
+                    canClearAll: state.actionRankings.isNotEmpty,
+                    onClearAll: () => _confirmClearRankings(context, ref),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  const DeviceStatusCard(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      bottomNavigationBar: const _MobileBottomArea(),
     );
   }
 
@@ -89,75 +91,5 @@ class TrainingPage extends ConsumerWidget {
     if (clear == true && context.mounted) {
       await ref.read(trainingControllerProvider.notifier).clearActionRankings();
     }
-  }
-}
-
-class _MobileBottomArea extends StatelessWidget {
-  const _MobileBottomArea();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.sidebar,
-        border: Border(top: BorderSide(color: AppColors.border)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x1A0F172A),
-            blurRadius: 18,
-            spreadRadius: -8,
-            offset: Offset(0, -8),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(AppSpacing.md, 10, AppSpacing.md, 6),
-              child: SessionControls(),
-            ),
-            NavigationBar(
-              height: 58,
-              selectedIndex: 0,
-              backgroundColor: Colors.transparent,
-              indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-              labelBehavior:
-                  NavigationDestinationLabelBehavior.onlyShowSelected,
-              onDestinationSelected: (index) {
-                if (index == 0) return;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('This section is coming soon.'),
-                    ),
-                  );
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.fitness_center_rounded),
-                  label: 'Training',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.history_rounded),
-                  label: 'History',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.sensors_rounded),
-                  label: 'Devices',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_rounded),
-                  label: 'Settings',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

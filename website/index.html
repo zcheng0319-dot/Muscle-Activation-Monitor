@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MyEMG is a wearable system for monitoring biceps muscle activation in real time.">
+  <title>MyEMG — Real-time Muscle Activation Monitor</title>
+  <link rel="icon" type="image/png" href="assets/app_icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#top" aria-label="MyEMG home">
+        <img src="assets/app_icon.png" alt="" width="38" height="38">
+        <span>MyEMG</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#overview">Overview</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#features">Features</a>
+        <a class="nav-cta" href="#demo">View demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero section">
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <div class="eyebrow"><span class="status-dot"></span> Wearable EMG monitoring</div>
+          <img class="hero-logo" src="assets/app_icon.png" alt="MyEMG app logo" width="92" height="92">
+          <h1>Real-time Muscle<br><span>Activation Monitor</span></h1>
+          <p class="hero-description">
+            A wearable EMG system that measures biceps activation in real time and
+            visualises muscle effort through a mobile app.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#demo">View Demo <span aria-hidden="true">→</span></a>
+            <a class="button button-secondary" href="#how-it-works">How It Works</a>
+          </div>
+          <div class="hero-meta" aria-label="Project highlights">
+            <span><strong>BLE</strong> wireless</span>
+            <span><strong>Live</strong> data</span>
+            <span><strong>0–100%</strong> activation</span>
+          </div>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="MyEMG mobile dashboard preview">
+          <div class="signal-card signal-card-back">
+            <span>Raw EMG</span>
+            <svg viewBox="0 0 360 90" role="img" aria-label="Example EMG waveform">
+              <polyline points="0,45 28,44 44,48 54,36 62,58 72,20 81,69 91,31 99,53 111,42 136,45 151,43 161,50 171,25 181,63 191,17 201,70 210,34 221,51 232,42 253,45 269,43 283,48 294,37 305,54 317,29 329,59 341,40 360,45"/>
+            </svg>
+          </div>
+          <div class="phone">
+            <div class="phone-top"><span>MyEMG</span><span class="connected"><i></i> Connected</span></div>
+            <div class="phone-content">
+              <p>Biceps activation</p>
+              <div class="activation-ring">
+                <div><strong>72</strong><span>%</span></div>
+              </div>
+              <div class="phone-stats">
+                <div><span>Average</span><strong>48%</strong></div>
+                <div><span>Peak</span><strong>86%</strong></div>
+                <div><span>Reps</span><strong>12</strong></div>
+              </div>
+              <button type="button" tabindex="-1">Recalibrate EMG</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="container">
+        <div class="section-heading reveal">
+          <span class="section-kicker">Project overview</span>
+          <h2>Muscle effort, made visible.</h2>
+          <p>MyEMG combines a wearable sensor, embedded processing and a focused mobile experience to turn the biceps' electrical activity into clear, useful feedback.</p>
+        </div>
+        <div class="overview-card reveal">
+          <div>
+            <span class="overview-label">The system</span>
+            <h3>From muscle signal to live insight</h3>
+          </div>
+          <p>The Cheez.sEMG sensor captures muscle activity while a XIAO ESP32C3 processes the signal and sends it wirelessly to a Flutter app. The result is an intuitive 0–100% activation reading for training, testing and exploration.</p>
+          <div class="overview-specs">
+            <span>Cheez.sEMG sensor</span>
+            <span>XIAO ESP32C3</span>
+            <span>BLE wireless</span>
+            <span>Flutter app</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="how-it-works">
+      <div class="container">
+        <div class="section-heading reveal">
+          <span class="section-kicker">How it works</span>
+          <h2>Four steps. One live signal.</h2>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card reveal">
+            <span class="step-number">01</span>
+            <h3>Capture raw EMG</h3>
+            <p>The wearable sensor detects electrical activity produced by the biceps.</p>
+          </article>
+          <article class="step-card reveal">
+            <span class="step-number">02</span>
+            <h3>Process on ESP32C3</h3>
+            <p>The signal is sampled and converted into a calibrated activation percentage.</p>
+          </article>
+          <article class="step-card reveal">
+            <span class="step-number">03</span>
+            <h3>Send via BLE</h3>
+            <p>Live activation and waveform data travel wirelessly to the phone.</p>
+          </article>
+          <article class="step-card reveal">
+            <span class="step-number">04</span>
+            <h3>Visualise in the app</h3>
+            <p>The dashboard presents muscle effort, session metrics and the raw waveform.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-heading reveal">
+          <span class="section-kicker">Key features</span>
+          <h2>Everything needed for a focused session.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card reveal"><span class="feature-icon">%</span><h3>Real-time Act%</h3><p>See muscle activation update live on a clear 0–100% scale.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Raw EMG Waveform</h3><p>Inspect the underlying signal as it moves through each contraction.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">B</span><h3>BLE Connection</h3><p>Stream measurements wirelessly from the wearable to the app.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Recalibrate EMG</h3><p>Reset the reference range to suit a new user or training session.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↗</span><h3>Session Tracking</h3><p>Follow average activation, peak effort and repetition count.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Minimal App Dashboard</h3><p>Keep essential feedback readable and distraction-free.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="prototype">
+      <div class="container split-section">
+        <div class="split-copy reveal">
+          <span class="section-kicker">Device / prototype</span>
+          <h2>Designed to move with you.</h2>
+          <p>The sensor, controller and battery are brought together in a compact wearable prototype with a custom 3D-printed case.</p>
+          <ul class="check-list">
+            <li>Wearable biceps placement</li>
+            <li>Compact embedded hardware</li>
+            <li>Wireless, untethered feedback</li>
+          </ul>
+        </div>
+        <div class="media-placeholder device-placeholder reveal">
+          <div class="placeholder-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <strong>Device photos coming soon</strong>
+          <p>Prototype imagery will be added here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIDEO DEMO SECTION: Replace the placeholder below with a local <video>
+         element or a YouTube embed when the demo is ready. -->
+    <section class="section" id="demo">
+      <div class="container">
+        <div class="section-heading centered reveal">
+          <span class="section-kicker">Video demo</span>
+          <h2>See MyEMG in action.</h2>
+          <p>A walkthrough of the wearable, calibration flow and live activation dashboard will appear here.</p>
+        </div>
+        <div class="video-placeholder reveal">
+          <div class="play-button" aria-hidden="true"><span></span></div>
+          <strong>Video demo coming soon</strong>
+          <p>Product demonstration and project walkthrough</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="app-preview">
+      <div class="container split-section app-section">
+        <div class="app-flow reveal">
+          <div class="flow-header">
+            <img src="assets/app_icon.png" alt="" width="44" height="44">
+            <div><strong>MyEMG</strong><span>Session ready</span></div>
+            <i></i>
+          </div>
+          <div class="flow-item"><span>1</span><div><strong>Connect My_EMG</strong><small>Pair over Bluetooth Low Energy</small></div><b>Connected</b></div>
+          <div class="flow-item"><span>2</span><div><strong>Recalibrate</strong><small>Set your baseline before training</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>3</span><div><strong>Start moving</strong><small>View activation and session metrics</small></div><b>Live</b></div>
+        </div>
+        <div class="split-copy reveal">
+          <span class="section-kicker">App preview</span>
+          <h2>A calm interface for live feedback.</h2>
+          <p>Connect to <strong>My_EMG</strong>, recalibrate before training, then view biceps activation without losing focus on the movement.</p>
+          <div class="mini-metrics">
+            <div><strong>Average</strong><span>Session effort</span></div>
+            <div><strong>Peak</strong><span>Maximum activation</span></div>
+            <div><strong>Reps</strong><span>Movement count</span></div>
+            <div><strong>Waveform</strong><span>Raw signal view</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="stack">
+      <div class="container stack-wrap reveal">
+        <div>
+          <span class="section-kicker">Technical stack</span>
+          <h2>Built across hardware and software.</h2>
+        </div>
+        <div class="tag-list" aria-label="Technologies used">
+          <span>Flutter</span><span>Dart</span><span>Arduino</span><span>ESP32C3</span>
+          <span>BLE</span><span>EMG</span><span>3D Printed Case</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <div class="brand footer-brand">
+        <img src="assets/app_icon.png" alt="" width="34" height="34">
+        <span>MyEMG</span>
+      </div>
+      <p>MyEMG — MSc Connected Environments Project</p>
+      <p>Built by Cheng Zhong</p>
+    </div>
+  </footer>
+</body>
+</html>

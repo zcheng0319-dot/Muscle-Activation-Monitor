@@ -12,13 +12,6 @@ class LiveSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = state.leftActivation + state.rightActivation;
-    final leftRatio = total == 0 ? .5 : state.leftActivation / total;
-    final leftFlex = (leftRatio * 100).round().clamp(1, 99).toInt();
-    final difference = state.difference;
-    final balanceLabel = difference <= 5
-        ? 'Balanced'
-        : '${state.leftActivation > state.rightActivation ? 'Left' : 'Right'} +$difference%';
     final minutes = state.elapsedSeconds ~/ 60;
     final seconds = state.elapsedSeconds % 60;
 
@@ -39,71 +32,14 @@ class LiveSummaryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Flexible(
-                child: Text(
-                  balanceLabel,
-                  style: AppTypography.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
               Text(
-                '${state.balanceScore}',
+                '${state.leftActivation}%',
                 style: AppTypography.metric.copyWith(
                   fontSize: 28,
                   height: 0.95,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              const Expanded(
-                child: Text(
-                  'Muscle Balance Score',
-                  style: AppTypography.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              _InlineMetric(
-                label: 'Time',
-                value: '$minutes:${seconds.toString().padLeft(2, '0')}',
-              ),
-              const SizedBox(width: AppSpacing.md),
-              _InlineMetric(label: 'Reps', value: '${state.repetitions}'),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: leftFlex,
-                    child: const ColoredBox(color: AppColors.orange),
-                  ),
-                  Expanded(
-                    flex: 100 - leftFlex,
-                    child: const ColoredBox(color: AppColors.blue),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              Text('L ${state.leftActivation}%', style: AppTypography.label),
-              const Spacer(),
-              Text('R ${state.rightActivation}%', style: AppTypography.label),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -111,56 +47,35 @@ class LiveSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _CompactMetric(
-                  label: 'Left Avg',
+                  label: 'Average',
                   value: '${state.leftAverage.round()}%',
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: _CompactMetric(
-                  label: 'Right Avg',
-                  value: '${state.rightAverage.round()}%',
+                  label: 'Peak',
+                  value: '${state.leftPeak}%',
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: _CompactMetric(
-                  label: 'Peak',
-                  value: '${state.leftPeak}/${state.rightPeak}',
+                  label: 'Time',
+                  value: '$minutes:${seconds.toString().padLeft(2, '0')}',
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: _CompactMetric(
+                  label: 'Reps',
+                  value: '${state.repetitions}',
                 ),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-}
-
-class _InlineMetric extends StatelessWidget {
-  const _InlineMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: AppTypography.label.copyWith(fontSize: 10),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          value,
-          style: AppTypography.cardTitle.copyWith(fontWeight: FontWeight.w700),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
     );
   }
 }

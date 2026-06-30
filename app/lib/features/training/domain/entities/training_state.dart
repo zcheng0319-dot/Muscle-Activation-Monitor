@@ -1,6 +1,7 @@
 import 'package:myemg/features/training/domain/entities/session_summary.dart';
 
 typedef EmgSample = ({int left, int right});
+typedef RawEmgSample = ({double left, double right});
 
 const defaultExerciseNames = ['Bicep Curl', 'Hammer Curl'];
 const defaultSelectedExercise = 'Bicep Curl';
@@ -17,10 +18,15 @@ class TrainingState {
     this.repetitions = 0,
     this.elapsedSeconds = 0,
     this.isRunning = false,
+    this.leftBaseline = 0,
+    this.rightBaseline = 0,
+    this.leftSessionMax = 0,
+    this.rightSessionMax = 0,
     this.selectedExercise = defaultSelectedExercise,
     this.exercises = defaultExerciseNames,
     this.actionRankings = const [],
     this.rawSamples = const [],
+    this.rawEmgSamples = const [],
   });
 
   final int leftActivation;
@@ -33,10 +39,15 @@ class TrainingState {
   final int repetitions;
   final int elapsedSeconds;
   final bool isRunning;
+  final double leftBaseline;
+  final double rightBaseline;
+  final double leftSessionMax;
+  final double rightSessionMax;
   final String selectedExercise;
   final List<String> exercises;
   final List<SessionSummary> actionRankings;
   final List<EmgSample> rawSamples;
+  final List<RawEmgSample> rawEmgSamples;
 
   int get difference => (leftActivation - rightActivation).abs();
 
@@ -87,10 +98,15 @@ class TrainingState {
     int? repetitions,
     int? elapsedSeconds,
     bool? isRunning,
+    double? leftBaseline,
+    double? rightBaseline,
+    double? leftSessionMax,
+    double? rightSessionMax,
     String? selectedExercise,
     List<String>? exercises,
     List<SessionSummary>? actionRankings,
     List<EmgSample>? rawSamples,
+    List<RawEmgSample>? rawEmgSamples,
   }) {
     return TrainingState(
       leftActivation: leftActivation ?? this.leftActivation,
@@ -103,10 +119,15 @@ class TrainingState {
       repetitions: repetitions ?? this.repetitions,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       isRunning: isRunning ?? this.isRunning,
+      leftBaseline: leftBaseline ?? this.leftBaseline,
+      rightBaseline: rightBaseline ?? this.rightBaseline,
+      leftSessionMax: leftSessionMax ?? this.leftSessionMax,
+      rightSessionMax: rightSessionMax ?? this.rightSessionMax,
       selectedExercise: selectedExercise ?? this.selectedExercise,
       exercises: exercises ?? this.exercises,
       actionRankings: actionRankings ?? this.actionRankings,
       rawSamples: rawSamples ?? this.rawSamples,
+      rawEmgSamples: rawEmgSamples ?? this.rawEmgSamples,
     );
   }
 

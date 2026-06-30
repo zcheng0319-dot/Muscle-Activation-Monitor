@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:myemg/core/theme/app_colors.dart';
 import 'package:myemg/core/theme/app_spacing.dart';
+import 'package:myemg/features/devices/presentation/controllers/device_connection_controller.dart';
 import 'package:myemg/features/training/presentation/controllers/training_controller.dart';
+import 'package:myemg/features/training/presentation/widgets/emg_recalibration_dialog.dart';
 
 class SessionControls extends ConsumerStatefulWidget {
   const SessionControls({super.key});
@@ -33,37 +35,167 @@ class _SessionControlsState extends ConsumerState<SessionControls> {
         (state) => (running: state.isRunning, hasData: state.hasSessionData),
       ),
     );
+    final hasConnectedDevice = ref.watch(
+      deviceConnectionControllerProvider.select(
+        (state) => state.leftDevice.connected,
+      ),
+    );
+    final canEndSession = status.running || status.hasData;
     final controller = ref.read(trainingControllerProvider.notifier);
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: controller.toggleSession,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shadowColor: AppColors.primary.withValues(alpha: 0.24),
+        Row(
+          children: [
+            Expanded(
+              child: Tooltip(
+                message: status.running || hasConnectedDevice
+                    ? ''
+                    : 'Connect at least one device to start',
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      _handleSessionPressed(status.running, controller),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.muted.withValues(
+                      alpha: 0.22,
+                    ),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: AppColors.muted,
+                    elevation: 0,
+                    shadowColor: AppColors.primary.withValues(alpha: 0.24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.controlRadius,
+                      ),
+                    ),
+                  ),
+                  icon: Icon(
+                    status.running
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                  label: Text(
+                    status.running ? 'Pause Session' : 'Start Session',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _HoldEndSessionButton(
+              enabled: canEndSession,
+              progress: _holdProgress,
+              onHoldStart: canEndSession ? _startEndHold : null,
+              onHoldCancel: _cancelEndHold,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _showRecalibrationGuide,
+            icon: const Icon(Icons.restart_alt_rounded),
+            label: const Text('Recalibrate EMG'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(44),
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.border),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.controlRadius),
               ),
             ),
-            icon: Icon(
-              status.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            ),
-            label: Text(status.running ? 'Pause Session' : 'Start Session'),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        _HoldEndSessionButton(
-          enabled: status.hasData,
-          progress: _holdProgress,
-          onHoldStart: status.hasData ? _startEndHold : null,
-          onHoldCancel: _cancelEndHold,
-        ),
       ],
+    );
+  }
+
+  Future<void> _handleSessionPressed(
+    bool isRunning,
+    TrainingController controller,
+  ) async {
+    if (isRunning) {
+      controller.toggleSession();
+      return;
+    }
+
+    debugPrint('Start Session pressed');
+    final deviceState = ref.read(deviceConnectionControllerProvider);
+    final connected = deviceState.leftDevice.connected;
+    debugPrint('My_EMG ${connected ? 'connected' : 'not connected'}');
+    if (!connected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Connect My_EMG before starting a session.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    debugPrint('Start-session calibration dialog opened');
+    await showEmgRecalibrationGuideDialog(
+      context: context,
+      title: 'Prepare Session',
+      introText:
+          'Before starting this session, we will recalibrate your relaxed baseline and maximum contraction.',
+      introSteps: const [
+        'Keep your arm completely relaxed.',
+        'Contract your biceps as hard as possible.',
+        'Training will start automatically after calibration.',
+      ],
+      startButtonLabel: 'Start Calibration',
+      failureMessage: 'Failed to start calibration. Please reconnect My_EMG.',
+      onStartRecalibration: () async {
+        debugPrint('Sending recalibration command before session');
+        final sent = await ref
+            .read(deviceConnectionControllerProvider.notifier)
+            .sendRecalibrateCommand();
+        if (sent) {
+          debugPrint('Recalibration command sent');
+        }
+        return sent;
+      },
+      onComplete: () async {
+        debugPrint('Calibration countdown completed');
+        if (!mounted) return;
+
+        final stillConnected = ref
+            .read(deviceConnectionControllerProvider)
+            .leftDevice
+            .connected;
+        if (!stillConnected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('My_EMG disconnected before training started.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
+        controller.toggleSession();
+        debugPrint('Training session started after recalibration');
+      },
+    );
+  }
+
+  Future<void> _showRecalibrationGuide() async {
+    debugPrint('Recalibrate button pressed');
+    await showEmgRecalibrationGuideDialog(
+      context: context,
+      onStartRecalibration: () {
+        final deviceState = ref.read(deviceConnectionControllerProvider);
+        debugPrint(
+          'Recalibrate connected device status: '
+          '${deviceState.leftDevice.connected}',
+        );
+        return ref
+            .read(deviceConnectionControllerProvider.notifier)
+            .sendRecalibrateCommand();
+      },
     );
   }
 

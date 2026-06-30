@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:myemg/features/training/data/datasources/mock_emg_datasource.dart';
+import 'package:myemg/features/devices/presentation/controllers/device_connection_controller.dart';
 import 'package:myemg/features/training/data/repositories/local_training_history_repository.dart';
 import 'package:myemg/features/training/domain/entities/session_summary.dart';
 import 'package:myemg/features/training/domain/entities/training_state.dart';
 import 'package:myemg/features/training/domain/repositories/training_history_repository.dart';
 
-final mockEmgDataSourceProvider = Provider((ref) => MockEmgDataSource());
 final trainingHistoryRepositoryProvider = Provider<TrainingHistoryRepository>(
   (ref) => const LocalTrainingHistoryRepository(),
 );
@@ -19,8 +18,8 @@ class TrainingController extends Notifier<TrainingState> {
   static const _repActivationThreshold = 70;
   static const _repReleaseThreshold = 45;
   static const _maxRawSamples = 80;
+  static const _maxRawWaveformSamples = 180;
 
-  StreamSubscription<(int, int)>? _subscription;
   Timer? _timer;
   int _leftTotal = 0;
   int _rightTotal = 0;
@@ -32,9 +31,22 @@ class TrainingController extends Notifier<TrainingState> {
   TrainingState build() {
     _isDisposed = false;
     unawaited(_loadPersistedTrainingData());
+    ref.listen(
+      deviceConnectionControllerProvider.select(
+        (deviceState) => (
+          leftSmoothEmg: deviceState.leftDevice.connected
+              ? deviceState.leftDevice.smoothEmg
+              : 0.0,
+          leftRawEmg: deviceState.leftDevice.connected
+              ? deviceState.leftDevice.rawEmg
+              : 0.0,
+          leftConnected: deviceState.leftDevice.connected,
+        ),
+      ),
+      (_, deviceSample) => _handleLiveDeviceActivation(deviceSample),
+    );
     ref.onDispose(() {
       _isDisposed = true;
-      _subscription?.cancel();
       _timer?.cancel();
     });
     return const TrainingState();
@@ -42,66 +54,130 @@ class TrainingController extends Notifier<TrainingState> {
 
   void toggleSession() {
     if (state.isRunning) {
-      _subscription?.pause();
       _timer?.cancel();
       state = state.copyWith(isRunning: false);
       return;
     }
 
-    final startsNewSession = _subscription == null;
+    final startsNewSession = !state.hasSessionData && state.elapsedSeconds == 0;
     if (startsNewSession) {
       _resetAccumulators();
-      _subscription = ref
-          .read(mockEmgDataSourceProvider)
-          .watchActivation()
-          .listen(_handleSample);
-    } else {
-      _subscription?.resume();
     }
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
     });
     state = state.copyWith(isRunning: true);
+    _handleSample(_currentDeviceSample());
   }
 
-  void _handleSample((int, int) sample) {
-    _leftTotal += sample.$1;
-    _rightTotal += sample.$2;
+  void calibrateRelax() {
+    final deviceState = ref.read(deviceConnectionControllerProvider);
+    state = state.copyWith(
+      leftBaseline: deviceState.leftDevice.connected
+          ? deviceState.leftDevice.smoothEmg
+          : state.leftBaseline,
+      rightBaseline: deviceState.rightDevice.connected
+          ? deviceState.rightDevice.smoothEmg
+          : state.rightBaseline,
+    );
+  }
+
+  void calibrateMax() {
+    final deviceState = ref.read(deviceConnectionControllerProvider);
+    state = state.copyWith(
+      leftSessionMax: deviceState.leftDevice.connected
+          ? deviceState.leftDevice.smoothEmg
+          : state.leftSessionMax,
+      rightSessionMax: deviceState.rightDevice.connected
+          ? deviceState.rightDevice.smoothEmg
+          : state.rightSessionMax,
+    );
+  }
+
+  void _handleLiveDeviceActivation(
+    ({double leftSmoothEmg, double leftRawEmg, bool leftConnected})
+    deviceSample,
+  ) {
+    final sample = _normalizedDeviceSample(
+      leftSmoothEmg: deviceSample.leftSmoothEmg,
+      leftConnected: deviceSample.leftConnected,
+    );
+    final rawEmgSamples = _nextRawEmgSamples(
+      leftRawEmg: deviceSample.leftRawEmg,
+      rightRawEmg: 0,
+      leftConnected: deviceSample.leftConnected,
+      rightConnected: false,
+    );
+
+    if (state.isRunning) {
+      _handleSample(sample, rawEmgSamples: rawEmgSamples);
+      return;
+    }
+
+    state = state.copyWith(
+      leftActivation: sample.left,
+      rightActivation: 0,
+      rawEmgSamples: rawEmgSamples,
+    );
+  }
+
+  void _handleSample(EmgSample sample, {List<RawEmgSample>? rawEmgSamples}) {
+    _leftTotal += sample.left;
+    _rightTotal += sample.right;
     _sampleCount++;
 
-    final bilateralActivation = (sample.$1 + sample.$2) / 2;
     var repetitions = state.repetitions;
-    if (_readyForRep && bilateralActivation >= _repActivationThreshold) {
+    if (_readyForRep && sample.left >= _repActivationThreshold) {
       repetitions++;
       _readyForRep = false;
-    } else if (!_readyForRep && bilateralActivation <= _repReleaseThreshold) {
+    } else if (!_readyForRep && sample.left <= _repReleaseThreshold) {
       _readyForRep = true;
     }
 
-    final rawSamples = [
-      ...state.rawSamples,
-      (left: sample.$1, right: sample.$2),
-    ];
+    final rawSamples = [...state.rawSamples, sample];
     final trimmedRawSamples = rawSamples.length > _maxRawSamples
         ? rawSamples.sublist(rawSamples.length - _maxRawSamples)
         : rawSamples;
 
     state = state.copyWith(
-      leftActivation: sample.$1,
-      rightActivation: sample.$2,
-      leftPeak: sample.$1 > state.leftPeak ? sample.$1 : state.leftPeak,
-      rightPeak: sample.$2 > state.rightPeak ? sample.$2 : state.rightPeak,
+      leftActivation: sample.left,
+      rightActivation: sample.right,
+      leftPeak: sample.left > state.leftPeak ? sample.left : state.leftPeak,
+      rightPeak: sample.right > state.rightPeak
+          ? sample.right
+          : state.rightPeak,
       leftAverage: _leftTotal / _sampleCount,
       rightAverage: _rightTotal / _sampleCount,
       sampleCount: _sampleCount,
       repetitions: repetitions,
       rawSamples: trimmedRawSamples,
+      rawEmgSamples: rawEmgSamples,
     );
   }
 
   Future<void> endSession() async {
-    if (!state.hasSessionData) return;
+    if (!state.isRunning && !state.hasSessionData) return;
+
+    if (!state.hasSessionData) {
+      final selectedExercise = state.selectedExercise;
+      final exercises = state.exercises;
+      final actionRankings = state.actionRankings;
+
+      _timer?.cancel();
+      _resetAccumulators();
+      state = TrainingState(
+        selectedExercise: selectedExercise,
+        exercises: exercises,
+        actionRankings: actionRankings,
+        leftBaseline: state.leftBaseline,
+        rightBaseline: state.rightBaseline,
+        leftSessionMax: state.leftSessionMax,
+        rightSessionMax: state.rightSessionMax,
+        rawEmgSamples: state.rawEmgSamples,
+      );
+      return;
+    }
 
     final summary = SessionSummary(
       exerciseName: state.selectedExercise,
@@ -118,14 +194,17 @@ class TrainingController extends Notifier<TrainingState> {
     final exercises = state.exercises;
     final actionRankings = [summary, ...state.actionRankings];
 
-    _subscription?.cancel();
-    _subscription = null;
     _timer?.cancel();
     _resetAccumulators();
     state = TrainingState(
       selectedExercise: selectedExercise,
       exercises: exercises,
       actionRankings: actionRankings,
+      leftBaseline: state.leftBaseline,
+      rightBaseline: state.rightBaseline,
+      leftSessionMax: state.leftSessionMax,
+      rightSessionMax: state.rightSessionMax,
+      rawEmgSamples: state.rawEmgSamples,
     );
     try {
       await ref.read(trainingHistoryRepositoryProvider).saveSession(summary);
@@ -201,6 +280,44 @@ class TrainingController extends Notifier<TrainingState> {
     _rightTotal = 0;
     _sampleCount = 0;
     _readyForRep = true;
+  }
+
+  EmgSample _currentDeviceSample() {
+    final deviceState = ref.read(deviceConnectionControllerProvider);
+    return _normalizedDeviceSample(
+      leftSmoothEmg: deviceState.leftDevice.smoothEmg,
+      leftConnected: deviceState.leftDevice.connected,
+    );
+  }
+
+  EmgSample _normalizedDeviceSample({
+    required double leftSmoothEmg,
+    required bool leftConnected,
+  }) {
+    return (
+      left: leftConnected && leftSmoothEmg.isFinite
+          ? leftSmoothEmg.round().clamp(0, 100).toInt()
+          : 0,
+      right: 0,
+    );
+  }
+
+  List<RawEmgSample> _nextRawEmgSamples({
+    required double leftRawEmg,
+    required double rightRawEmg,
+    required bool leftConnected,
+    required bool rightConnected,
+  }) {
+    final rawSample = (
+      left: leftConnected && leftRawEmg.isFinite ? leftRawEmg : 0.0,
+      right: rightConnected && rightRawEmg.isFinite ? rightRawEmg : 0.0,
+    );
+    final rawEmgSamples = [...state.rawEmgSamples, rawSample];
+    final trimmedRawEmgSamples = rawEmgSamples.length > _maxRawWaveformSamples
+        ? rawEmgSamples.sublist(rawEmgSamples.length - _maxRawWaveformSamples)
+        : rawEmgSamples;
+
+    return trimmedRawEmgSamples;
   }
 
   bool _containsExercise(String name) {
