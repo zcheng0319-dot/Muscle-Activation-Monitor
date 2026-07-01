@@ -120,6 +120,7 @@ class EmgDeviceConnection {
     this.signalStrength = 0,
     this.rawEmg = 0,
     this.smoothEmg = 0,
+    this.isInvalidSample = false,
   });
 
   final DeviceSide side;
@@ -128,6 +129,7 @@ class EmgDeviceConnection {
   final int signalStrength;
   final double rawEmg;
   final double smoothEmg;
+  final bool isInvalidSample;
 
   int get activationPercent {
     if (!smoothEmg.isFinite || smoothEmg <= 0) return 0;
@@ -150,6 +152,7 @@ class EmgDeviceConnection {
     int? signalStrength,
     double? rawEmg,
     double? smoothEmg,
+    bool? isInvalidSample,
   }) {
     return EmgDeviceConnection(
       side: side,
@@ -158,15 +161,21 @@ class EmgDeviceConnection {
       signalStrength: signalStrength ?? this.signalStrength,
       rawEmg: rawEmg ?? this.rawEmg,
       smoothEmg: smoothEmg ?? this.smoothEmg,
+      isInvalidSample: isInvalidSample ?? this.isInvalidSample,
     );
   }
 }
 
 class _EmgPayload {
-  const _EmgPayload({required this.rawEmg, required this.smoothEmg});
+  const _EmgPayload({
+    required this.rawEmg,
+    required this.smoothEmg,
+    this.invalid = false,
+  });
 
   final double rawEmg;
   final double smoothEmg;
+  final bool invalid;
 }
 
 class DeviceConnectionController extends Notifier<DeviceConnectionState> {
@@ -419,6 +428,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           signalStrength: signalStrength,
           rawEmg: 0,
           smoothEmg: 0,
+          isInvalidSample: false,
         ),
         leftBoundDevice: BoundBleDevice(id: remoteId, name: name),
         clearScanError: true,
@@ -434,6 +444,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         signalStrength: signalStrength,
         rawEmg: 0,
         smoothEmg: 0,
+        isInvalidSample: false,
       ),
       rightBoundDevice: BoundBleDevice(id: remoteId, name: name),
       clearScanError: true,
@@ -468,6 +479,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           signalStrength: 0,
           rawEmg: 0,
           smoothEmg: 0,
+          isInvalidSample: false,
         ),
       );
       return;
@@ -479,6 +491,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         signalStrength: 0,
         rawEmg: 0,
         smoothEmg: 0,
+        isInvalidSample: false,
       ),
     );
   }
@@ -559,6 +572,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           signalStrength: 0,
           rawEmg: 0,
           smoothEmg: 0,
+          isInvalidSample: false,
         ),
       );
       return;
@@ -570,6 +584,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         signalStrength: 0,
         rawEmg: 0,
         smoothEmg: 0,
+        isInvalidSample: false,
       ),
     );
   }
@@ -623,35 +638,45 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
 
   void _handleEmgValue(DeviceSide side, List<int> value) {
     final payload = _parseEmgPayload(value);
+    if (payload == null) return;
     if (!payload.rawEmg.isFinite || !payload.smoothEmg.isFinite) return;
 
     if (side == DeviceSide.left) {
+      if (payload.invalid) {
+        state = state.copyWith(
+          leftDevice: state.leftDevice.copyWith(isInvalidSample: true),
+        );
+        return;
+      }
       final nextDevice = state.leftDevice.copyWith(
         rawEmg: payload.rawEmg,
         smoothEmg: payload.smoothEmg,
+        isInvalidSample: false,
       );
       state = state.copyWith(leftDevice: nextDevice);
       return;
     }
 
+    if (payload.invalid) {
+      state = state.copyWith(
+        rightDevice: state.rightDevice.copyWith(isInvalidSample: true),
+      );
+      return;
+    }
     final nextDevice = state.rightDevice.copyWith(
       rawEmg: payload.rawEmg,
       smoothEmg: payload.smoothEmg,
+      isInvalidSample: false,
     );
     state = state.copyWith(rightDevice: nextDevice);
   }
 
-  _EmgPayload _parseEmgPayload(List<int> value) {
-    if (value.isEmpty) {
-      return const _EmgPayload(rawEmg: 0, smoothEmg: 0);
-    }
+  _EmgPayload? _parseEmgPayload(List<int> value) {
+    if (value.isEmpty) return null;
 
     final textValue = utf8.decode(value, allowMalformed: true).trim();
-    final parsedTextPayload = _parseEmgTextPayload(textValue);
-    if (parsedTextPayload != null) return parsedTextPayload;
-
     if (_looksLikeTextPayload(textValue)) {
-      return const _EmgPayload(rawEmg: 0, smoothEmg: 0);
+      return _parseEmgTextPayload(textValue);
     }
 
     final binaryValue = _parseBinaryEmgValue(value);
@@ -678,17 +703,17 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
   _EmgPayload? _parseEmgTextPayload(String textValue) {
     if (textValue.isEmpty) return null;
 
+    if (textValue.startsWith('{') || textValue.startsWith('[')) {
+      try {
+        return _extractEmgPayloadFromJson(jsonDecode(textValue));
+      } on Object {
+        return null;
+      }
+    }
+
     final directValue = double.tryParse(textValue);
     if (directValue != null && directValue.isFinite) {
       return _EmgPayload(rawEmg: directValue, smoothEmg: directValue);
-    }
-
-    try {
-      final decoded = jsonDecode(textValue);
-      final jsonPayload = _extractEmgPayloadFromJson(decoded);
-      if (jsonPayload != null) return jsonPayload;
-    } on Object {
-      // Non-JSON text is handled by the labelled and single-value parsers.
     }
 
     final rawValue = _parseLabelledValue(textValue, const [
@@ -713,27 +738,6 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
     final commaSeparated = _parseCommaSeparatedValues(textValue);
     if (commaSeparated != null) return commaSeparated;
 
-    final numberMatches = RegExp(r'-?\d+(?:\.\d+)?').allMatches(textValue);
-    if (numberMatches.length == 1) {
-      final singleValue = double.tryParse(numberMatches.single.group(0)!);
-      if (singleValue != null && singleValue.isFinite) {
-        return _EmgPayload(rawEmg: singleValue, smoothEmg: singleValue);
-      }
-    }
-    if (numberMatches.length >= 2) {
-      final values = numberMatches
-          .map((match) => double.tryParse(match.group(0)!))
-          .whereType<double>()
-          .where((value) => value.isFinite)
-          .toList();
-      if (values.length == 2) {
-        return _EmgPayload(rawEmg: values.first, smoothEmg: values.first);
-      }
-      if (values.length >= 2) {
-        return _EmgPayload(rawEmg: values.first, smoothEmg: values[1]);
-      }
-    }
-
     return null;
   }
 
@@ -757,6 +761,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
       return _EmgPayload(rawEmg: value, smoothEmg: value);
     }
     if (decoded is Map) {
+      final invalid = _extractInvalidMapValue(decoded);
       final activationValue = _extractNumericMapValue(decoded, const ['act']);
       final rawValue = _extractNumericMapValue(decoded, const [
         'rawEMG',
@@ -774,12 +779,14 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         return _EmgPayload(
           rawEmg: rawValue ?? activationValue,
           smoothEmg: activationValue,
+          invalid: invalid,
         );
       }
       if (rawValue != null || smoothValue != null) {
         return _EmgPayload(
           rawEmg: rawValue ?? smoothValue ?? 0,
           smoothEmg: smoothValue ?? rawValue ?? 0,
+          invalid: invalid,
         );
       }
     }
@@ -801,6 +808,35 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
       }
     }
     return null;
+  }
+
+  bool _extractInvalidMapValue(Map<dynamic, dynamic> map) {
+    final value = map['invalid'];
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == '1' || normalized == 'true';
+    }
+    return false;
+  }
+
+  @visibleForTesting
+  ({double rawEmg, double smoothEmg, bool invalid})? parseEmgPayloadForTesting(
+    List<int> value,
+  ) {
+    final payload = _parseEmgPayload(value);
+    if (payload == null) return null;
+    return (
+      rawEmg: payload.rawEmg,
+      smoothEmg: payload.smoothEmg,
+      invalid: payload.invalid,
+    );
+  }
+
+  @visibleForTesting
+  void handleEmgValueForTesting(DeviceSide side, List<int> value) {
+    _handleEmgValue(side, value);
   }
 
   double? _parseLabelledValue(String textValue, List<String> labels) {

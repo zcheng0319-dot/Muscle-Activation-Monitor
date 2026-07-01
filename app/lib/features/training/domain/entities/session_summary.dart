@@ -1,5 +1,6 @@
 class SessionSummary {
   const SessionSummary({
+    this.targetMuscle = 'Biceps',
     required this.exerciseName,
     required this.durationSeconds,
     required this.repetitions,
@@ -11,6 +12,7 @@ class SessionSummary {
     this.createdAt,
   });
 
+  final String targetMuscle;
   final String exerciseName;
   final int durationSeconds;
   final int repetitions;
@@ -25,8 +27,9 @@ class SessionSummary {
 
   int get peakActivation => leftPeak;
 
-  SessionSummary copyWith({String? exerciseName}) {
+  SessionSummary copyWith({String? targetMuscle, String? exerciseName}) {
     return SessionSummary(
+      targetMuscle: targetMuscle ?? this.targetMuscle,
       exerciseName: exerciseName ?? this.exerciseName,
       durationSeconds: durationSeconds,
       repetitions: repetitions,
@@ -41,6 +44,7 @@ class SessionSummary {
 
   Map<String, Object?> toJson() {
     return {
+      'targetMuscle': targetMuscle,
       'exerciseName': exerciseName,
       'durationSeconds': durationSeconds,
       'repetitions': repetitions,
@@ -55,6 +59,7 @@ class SessionSummary {
 
   factory SessionSummary.fromJson(Map<String, Object?> json) {
     return SessionSummary(
+      targetMuscle: json['targetMuscle'] as String? ?? 'Biceps',
       exerciseName: json['exerciseName'] as String? ?? 'Unknown',
       durationSeconds: json['durationSeconds'] as int? ?? 0,
       repetitions: json['repetitions'] as int? ?? 0,

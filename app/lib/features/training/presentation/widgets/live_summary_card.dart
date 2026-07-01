@@ -12,67 +12,170 @@ class LiveSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return DashboardCard(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: LiveSummarySection(state: state),
+    );
+  }
+}
+
+class LiveSummarySection extends StatelessWidget {
+  const LiveSummarySection({required this.state, super.key});
+
+  final TrainingState state;
+
+  @override
+  Widget build(BuildContext context) {
     final minutes = state.elapsedSeconds ~/ 60;
     final seconds = state.elapsedSeconds % 60;
 
-    return DashboardCard(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Expanded(
+              child: Text(
+                'Live Summary',
+                style: AppTypography.sectionTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '${state.leftActivation}%',
+              style: AppTypography.metric.copyWith(
+                fontSize: 28,
+                height: 0.95,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _CompactMetric(
+                label: 'Average',
+                value: '${state.leftAverage.round()}%',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: _CompactMetric(label: 'Peak', value: '${state.leftPeak}%'),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: _CompactMetric(
+                label: 'Time',
+                value: '$minutes:${seconds.toString().padLeft(2, '0')}',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: _CompactMetric(
+                label: 'Reps',
+                value: '${state.repetitions}',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class CompactLiveSummarySection extends StatelessWidget {
+  const CompactLiveSummarySection({required this.state, super.key});
+
+  final TrainingState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = state.elapsedSeconds ~/ 60;
+    final seconds = state.elapsedSeconds % 60;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xs,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Live Summary',
-                  style: AppTypography.sectionTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                '${state.leftActivation}%',
-                style: AppTypography.metric.copyWith(
-                  fontSize: 28,
-                  height: 0.95,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          Text(
+            'Live Summary',
+            style: AppTypography.cardTitle.copyWith(
+              color: AppColors.secondary,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: _CompactMetric(
-                  label: 'Average',
-                  value: '${state.leftAverage.round()}%',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: _CompactMetric(
-                  label: 'Peak',
-                  value: '${state.leftPeak}%',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: _CompactMetric(
-                  label: 'Time',
-                  value: '$minutes:${seconds.toString().padLeft(2, '0')}',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: _CompactMetric(
-                  label: 'Reps',
-                  value: '${state.repetitions}',
-                ),
-              ),
-            ],
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '${state.leftActivation}%',
+            style: AppTypography.metric.copyWith(
+              color: AppColors.primary,
+              fontSize: 28,
+              height: 1,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const Divider(height: 1, color: AppColors.border),
+          _CompactSummaryMetricRow(
+            label: 'Average',
+            value: '${state.leftAverage.round()}%',
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          _CompactSummaryMetricRow(label: 'Peak', value: '${state.leftPeak}%'),
+          const Divider(height: 1, color: AppColors.border),
+          _CompactSummaryMetricRow(
+            label: 'Time',
+            value: '$minutes:${seconds.toString().padLeft(2, '0')}',
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          _CompactSummaryMetricRow(
+            label: 'Reps',
+            value: '${state.repetitions}',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactSummaryMetricRow extends StatelessWidget {
+  const _CompactSummaryMetricRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.label.copyWith(fontSize: 10),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            value,
+            style: AppTypography.cardTitle.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:myemg/core/theme/app_colors.dart';
 import 'package:myemg/core/theme/app_spacing.dart';
 import 'package:myemg/core/theme/app_typography.dart';
+import 'package:myemg/features/training/domain/entities/training_state.dart';
 
 Future<void> showEmgRecalibrationGuideDialog({
   required BuildContext context,
@@ -11,16 +12,15 @@ Future<void> showEmgRecalibrationGuideDialog({
   String title = 'Recalibrate EMG',
   String introText =
       'This will recalibrate your relaxed baseline and maximum contraction.',
-  List<String> introSteps = const [
-    'Keep your arm completely relaxed.',
-    'Contract your biceps as hard as possible.',
-  ],
+  List<String>? introSteps,
   String startButtonLabel = 'Start Recalibration',
   String failureMessage =
       'Failed to send recalibration command. Please reconnect My_EMG.',
   String completionMessage = 'You can start training now.',
   Future<void> Function()? onComplete,
+  String targetMuscle = 'Biceps',
 }) {
+  final muscle = contractionMuscleCopy(targetMuscle);
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -28,11 +28,17 @@ Future<void> showEmgRecalibrationGuideDialog({
       onStartRecalibration: onStartRecalibration,
       title: title,
       introText: introText,
-      introSteps: introSteps,
+      introSteps:
+          introSteps ??
+          [
+            'Keep your $muscle completely relaxed.',
+            'Contract your $muscle as hard as possible.',
+          ],
       startButtonLabel: startButtonLabel,
       failureMessage: failureMessage,
       completionMessage: completionMessage,
       onComplete: onComplete,
+      targetMuscle: targetMuscle,
     ),
   );
 }
@@ -57,6 +63,7 @@ class _EmgRecalibrationGuideDialog extends StatefulWidget {
     required this.failureMessage,
     required this.completionMessage,
     required this.onComplete,
+    required this.targetMuscle,
   });
 
   final Future<bool> Function() onStartRecalibration;
@@ -67,6 +74,7 @@ class _EmgRecalibrationGuideDialog extends StatefulWidget {
   final String failureMessage;
   final String completionMessage;
   final Future<void> Function()? onComplete;
+  final String targetMuscle;
 
   @override
   State<_EmgRecalibrationGuideDialog> createState() =>
@@ -300,11 +308,12 @@ class _EmgRecalibrationGuideDialogState
   }
 
   String get _instruction {
+    final muscle = contractionMuscleCopy(widget.targetMuscle);
     return switch (_stage) {
       _RecalibrationStage.warmup => 'Keep the sensor still.',
-      _RecalibrationStage.relax => 'Keep your biceps completely relaxed.',
+      _RecalibrationStage.relax => 'Keep your $muscle completely relaxed.',
       _RecalibrationStage.maxContraction =>
-        'Contract your biceps as hard as possible.',
+        'Contract your $muscle as hard as possible.',
       _ => '',
     };
   }

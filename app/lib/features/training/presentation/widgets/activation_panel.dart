@@ -26,7 +26,7 @@ class ActivationPanel extends StatelessWidget {
     final displayValue = connected ? value : 0;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: BoxDecoration(
         color: AppColors.card,
         border: Border.all(color: AppColors.border),
@@ -71,7 +71,7 @@ class ActivationPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -89,7 +89,7 @@ class ActivationPanel extends StatelessWidget {
                   '$displayValue',
                   key: ValueKey(displayValue),
                   style: AppTypography.metric.copyWith(
-                    fontSize: 42,
+                    fontSize: 38,
                     height: 0.95,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0,
@@ -121,7 +121,7 @@ class ActivationPanel extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Expanded(child: _FluorescentActivationColumn(value: displayValue)),
         ],
       ),

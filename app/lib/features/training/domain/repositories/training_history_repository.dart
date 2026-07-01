@@ -12,4 +12,18 @@ abstract class TrainingHistoryRepository {
   Future<List<String>> loadExercises();
 
   Future<void> saveExercises(List<String> exercises);
+
+  Future<List<String>> loadTargetMuscles();
+
+  Future<void> saveTargetMuscles(List<String> muscles);
+
+  Future<Map<String, List<String>>?> loadExercisesByMuscle();
+
+  Future<void> saveExercisesByMuscle(
+    Map<String, List<String>> exercisesByMuscle,
+  );
+
+  Future<String?> loadSelectedTargetMuscle();
+
+  Future<void> saveSelectedTargetMuscle(String muscle);
 }

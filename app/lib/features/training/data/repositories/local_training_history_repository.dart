@@ -9,6 +9,9 @@ class LocalTrainingHistoryRepository implements TrainingHistoryRepository {
 
   static const _sessionsKey = 'training_history.sessions';
   static const _exercisesKey = 'training_history.exercises';
+  static const _musclesKey = 'training_history.muscles';
+  static const _exercisesByMuscleKey = 'training_history.exercises_by_muscle';
+  static const _selectedMuscleKey = 'training_history.selected_muscle';
 
   @override
   Future<List<SessionSummary>> loadSessions() async {
@@ -53,6 +56,63 @@ class LocalTrainingHistoryRepository implements TrainingHistoryRepository {
   Future<void> saveExercises(List<String> exercises) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setStringList(_exercisesKey, exercises);
+  }
+
+  @override
+  Future<List<String>> loadTargetMuscles() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getStringList(_musclesKey) ?? const [];
+  }
+
+  @override
+  Future<void> saveTargetMuscles(List<String> muscles) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList(_musclesKey, muscles);
+  }
+
+  @override
+  Future<Map<String, List<String>>?> loadExercisesByMuscle() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encoded = preferences.getString(_exercisesByMuscleKey);
+    if (encoded == null) return null;
+
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map) return null;
+      return decoded.map<String, List<String>>((key, value) {
+        final exercises = value is List
+            ? value.whereType<String>().toList()
+            : <String>[];
+        return MapEntry(key.toString(), exercises);
+      });
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveExercisesByMuscle(
+    Map<String, List<String>> exercisesByMuscle,
+  ) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _exercisesByMuscleKey,
+      jsonEncode(exercisesByMuscle),
+    );
+  }
+
+  @override
+  Future<String?> loadSelectedTargetMuscle() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_selectedMuscleKey);
+  }
+
+  @override
+  Future<void> saveSelectedTargetMuscle(String muscle) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_selectedMuscleKey, muscle);
   }
 
   SessionSummary? _decodeSummary(String encodedSummary) {

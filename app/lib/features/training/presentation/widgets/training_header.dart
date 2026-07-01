@@ -4,6 +4,8 @@ import 'package:myemg/core/theme/app_colors.dart';
 import 'package:myemg/core/theme/app_spacing.dart';
 import 'package:myemg/core/theme/app_typography.dart';
 import 'package:myemg/features/devices/presentation/controllers/device_connection_controller.dart';
+import 'package:myemg/features/training/domain/entities/training_state.dart';
+import 'package:myemg/features/training/presentation/controllers/training_controller.dart';
 
 class TrainingHeader extends ConsumerWidget {
   const TrainingHeader({super.key});
@@ -15,16 +17,22 @@ class TrainingHeader extends ConsumerWidget {
         (state) => state.leftDevice.connected,
       ),
     );
+    final targetMuscle = ref.watch(
+      trainingControllerProvider.select((state) => state.targetMuscleLabel),
+    );
 
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Training', style: AppTypography.pageTitle),
-              SizedBox(height: AppSpacing.xs),
-              Text('Live biceps activation', style: AppTypography.label),
+              const Text('Training', style: AppTypography.pageTitle),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                liveActivationCopy(targetMuscle),
+                style: AppTypography.label,
+              ),
             ],
           ),
         ),
