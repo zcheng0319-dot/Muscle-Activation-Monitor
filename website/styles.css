@@ -799,20 +799,29 @@ h3 {
   font-size: clamp(30px, 3vw, 42px);
 }
 
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.stack-groups {
+  display: grid;
+  gap: 12px;
 }
 
-.tag-list span {
-  padding: 10px 15px;
-  color: #334155;
+.stack-group {
+  padding: 18px 20px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 15px;
   background: var(--background);
+}
+
+.stack-group h3 {
+  margin-bottom: 6px;
+  color: var(--primary);
+  font-size: 15px;
+}
+
+.stack-group p {
+  margin-bottom: 0;
+  color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  line-height: 1.55;
 }
 
 .site-footer {

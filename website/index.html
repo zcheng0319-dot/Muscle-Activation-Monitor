@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="MyEMG is a wearable system for monitoring biceps muscle activation in real time.">
+  <meta name="description" content="MyEMG is a wearable EMG device and mobile app for comparing how strongly different exercises activate a selected target muscle.">
   <title>MyEMG — Real-time Muscle Activation Monitor</title>
   <link rel="icon" type="image/png" href="assets/app_icon.png">
   <link rel="stylesheet" href="styles.css">
@@ -31,19 +31,21 @@
         <div class="hero-copy reveal">
           <div class="eyebrow"><span class="status-dot"></span> Wearable EMG monitoring</div>
           <img class="hero-logo" src="assets/app_icon.png" alt="MyEMG app logo" width="92" height="92">
-          <h1>Real-time Muscle<br><span>Activation Monitor</span></h1>
+          <h1><span>MyEMG</span><br>Real-time Muscle<br>Activation Monitor</h1>
           <p class="hero-description">
-            A wearable EMG system that measures biceps activation in real time and
-            visualises muscle effort through a mobile app.
+            Find out which exercises activate your target muscle the most. MyEMG is a
+            wearable EMG device and mobile app that turns invisible muscle activity into
+            live 0–100% feedback, helping beginners compare different movements.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#demo">View Demo <span aria-hidden="true">→</span></a>
             <a class="button button-secondary" href="#how-it-works">How It Works</a>
           </div>
           <div class="hero-meta" aria-label="Project highlights">
-            <span><strong>BLE</strong> wireless</span>
-            <span><strong>Live</strong> data</span>
+            <span><strong>Wearable</strong> EMG device</span>
+            <span><strong>Mobile</strong> app</span>
             <span><strong>0–100%</strong> activation</span>
+            <span><strong>Exercise</strong> ranking</span>
           </div>
         </div>
 
@@ -55,9 +57,9 @@
             </svg>
           </div>
           <div class="phone">
-            <div class="phone-top"><span>MyEMG</span><span class="connected"><i></i> Connected</span></div>
+            <div class="phone-top"><span>MyEMG</span><span class="connected"><i></i> My_EMG connected</span></div>
             <div class="phone-content">
-              <p>Biceps activation</p>
+              <p>Example: Biceps activation</p>
               <div class="activation-ring">
                 <div><strong>72</strong><span>%</span></div>
               </div>
@@ -77,15 +79,15 @@
       <div class="container">
         <div class="section-heading reveal">
           <span class="section-kicker">Project overview</span>
-          <h2>Muscle effort, made visible.</h2>
-          <p>MyEMG combines a wearable sensor, embedded processing and a focused mobile experience to turn the biceps' electrical activity into clear, useful feedback.</p>
+          <h2>Stop guessing which exercise works best.</h2>
+          <p>Muscle activity is usually invisible. Beginners often rely on feeling or guesswork to know whether an exercise is working.</p>
         </div>
         <div class="overview-card reveal">
           <div>
-            <span class="overview-label">The system</span>
-            <h3>From muscle signal to live insight</h3>
+            <span class="overview-label">The solution</span>
+            <h3>Turn muscle signals into useful feedback</h3>
           </div>
-          <p>The Cheez.sEMG sensor captures muscle activity while a XIAO ESP32C3 processes the signal and sends it wirelessly to a Flutter app. The result is an intuitive 0–100% activation reading for training, testing and exploration.</p>
+          <p>MyEMG turns muscle signals into a live 0–100% activation level. Users can perform different exercises for the same target muscle and compare Average and Peak activation in the app. The current app supports Biceps, Triceps and Legs, and can be extended to other target muscles.</p>
           <div class="overview-specs">
             <span>Cheez.sEMG sensor</span>
             <span>XIAO ESP32C3</span>
@@ -105,23 +107,23 @@
         <div class="steps-grid">
           <article class="step-card reveal">
             <span class="step-number">01</span>
-            <h3>Capture raw EMG</h3>
-            <p>The wearable sensor detects electrical activity produced by the biceps.</p>
+            <h3>Choose a target muscle</h3>
+            <p>Select the muscle you want to train or test.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">02</span>
-            <h3>Process on ESP32C3</h3>
-            <p>The signal is sampled and converted into a calibrated activation percentage.</p>
+            <h3>Wear and calibrate</h3>
+            <p>Place the EMG sensor on the target muscle, then follow a short guided calibration flow.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">03</span>
-            <h3>Send via BLE</h3>
-            <p>Live activation and waveform data travel wirelessly to the phone.</p>
+            <h3>Watch live activation</h3>
+            <p>See muscle effort as a real-time percentage and vertical bar chart in the app.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">04</span>
-            <h3>Visualise in the app</h3>
-            <p>The dashboard presents muscle effort, session metrics and the raw waveform.</p>
+            <h3>Compare exercises</h3>
+            <p>MyEMG saves Average, Peak, Time and Reps, then ranks which movement activated the target muscle most effectively.</p>
           </article>
         </div>
       </div>
@@ -134,12 +136,12 @@
           <h2>Everything needed for a focused session.</h2>
         </div>
         <div class="feature-grid">
-          <article class="feature-card reveal"><span class="feature-icon">%</span><h3>Real-time Act%</h3><p>See muscle activation update live on a clear 0–100% scale.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Raw EMG Waveform</h3><p>Inspect the underlying signal as it moves through each contraction.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">B</span><h3>BLE Connection</h3><p>Stream measurements wirelessly from the wearable to the app.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Recalibrate EMG</h3><p>Reset the reference range to suit a new user or training session.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">↗</span><h3>Session Tracking</h3><p>Follow average activation, peak effort and repetition count.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Minimal App Dashboard</h3><p>Keep essential feedback readable and distraction-free.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">%</span><h3>Real-time Activation</h3><p>See target muscle effort as a live 0–100% percentage.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Vertical Bar Chart</h3><p>Understand muscle effort quickly through a simple visual dashboard.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Guided Calibration</h3><p>Set a personal baseline before training for more meaningful feedback.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Raw EMG Waveform</h3><p>View the original signal behind the activation percentage.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↗</span><h3>Session Metrics</h3><p>Record Average, Peak, Time and estimated Reps for every saved session.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Best Exercises Ranking</h3><p>Compare different exercises for the same muscle and clearly identify which movement activates it most effectively.</p></article>
         </div>
       </div>
     </section>
@@ -149,9 +151,9 @@
         <div class="split-copy reveal">
           <span class="section-kicker">Device / prototype</span>
           <h2>Designed to move with you.</h2>
-          <p>The sensor, controller and battery are brought together in a compact wearable prototype with a custom 3D-printed case.</p>
+          <p>The wearable prototype combines a Cheez.sEMG sensor, XIAO ESP32C3 board, battery power and a 3D-printed case designed to be attached to the arm.</p>
           <ul class="check-list">
-            <li>Wearable biceps placement</li>
+            <li>Wearable target-muscle placement</li>
             <li>Compact embedded hardware</li>
             <li>Wireless, untethered feedback</li>
           </ul>
@@ -160,8 +162,8 @@
           <div class="placeholder-mark" aria-hidden="true">
             <span></span><span></span><span></span>
           </div>
-          <strong>Device photos coming soon</strong>
-          <p>Prototype imagery will be added here.</p>
+          <strong>Wearable prototype documentation</strong>
+          <p>Prototype photos will be added after the final exhibition setup.</p>
         </div>
       </div>
     </section>
@@ -173,12 +175,12 @@
         <div class="section-heading centered reveal">
           <span class="section-kicker">Video demo</span>
           <h2>See MyEMG in action.</h2>
-          <p>A walkthrough of the wearable, calibration flow and live activation dashboard will appear here.</p>
+          <p>The final demo video will show the wearable setup, recalibration flow, live activation dashboard, raw waveform view and Best Exercises ranking.</p>
         </div>
         <div class="video-placeholder reveal">
           <div class="play-button" aria-hidden="true"><span></span></div>
-          <strong>Video demo coming soon</strong>
-          <p>Product demonstration and project walkthrough</p>
+          <strong>Final project demonstration</strong>
+          <p>Wearable setup, calibration, live EMG feedback and exercise comparison</p>
         </div>
       </div>
     </section>
@@ -191,19 +193,21 @@
             <div><strong>MyEMG</strong><span>Session ready</span></div>
             <i></i>
           </div>
-          <div class="flow-item"><span>1</span><div><strong>Connect My_EMG</strong><small>Pair over Bluetooth Low Energy</small></div><b>Connected</b></div>
-          <div class="flow-item"><span>2</span><div><strong>Recalibrate</strong><small>Set your baseline before training</small></div><b>Ready</b></div>
-          <div class="flow-item"><span>3</span><div><strong>Start moving</strong><small>View activation and session metrics</small></div><b>Live</b></div>
+          <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Choose Biceps, Triceps or Legs</small></div><b>Selected</b></div>
+          <div class="flow-item"><span>2</span><div><strong>Recalibrate EMG</strong><small>Set a personal baseline and maximum contraction</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>3</span><div><strong>Train and compare</strong><small>View live activation, raw waveform and ranked exercises</small></div><b>Live</b></div>
         </div>
         <div class="split-copy reveal">
           <span class="section-kicker">App preview</span>
-          <h2>A calm interface for live feedback.</h2>
-          <p>Connect to <strong>My_EMG</strong>, recalibrate before training, then view biceps activation without losing focus on the movement.</p>
+          <h2>Live feedback that leads to a clearer choice.</h2>
+          <p>The app shows live activation through a percentage and vertical bar chart. After training, each session is saved with Average, Peak, Time and Reps. Best Exercises ranks saved exercises for the selected muscle, helping users understand which movement worked better. The example may show Biceps, but the same concept applies to any selected target muscle.</p>
           <div class="mini-metrics">
             <div><strong>Average</strong><span>Session effort</span></div>
             <div><strong>Peak</strong><span>Maximum activation</span></div>
+            <div><strong>Time</strong><span>Session duration</span></div>
             <div><strong>Reps</strong><span>Movement count</span></div>
             <div><strong>Waveform</strong><span>Raw signal view</span></div>
+            <div><strong>Best Exercises</strong><span>Ranked saved sets</span></div>
           </div>
         </div>
       </div>
@@ -215,9 +219,19 @@
           <span class="section-kicker">Technical stack</span>
           <h2>Built across hardware and software.</h2>
         </div>
-        <div class="tag-list" aria-label="Technologies used">
-          <span>Flutter</span><span>Dart</span><span>Arduino</span><span>ESP32C3</span>
-          <span>BLE</span><span>EMG</span><span>3D Printed Case</span>
+        <div class="stack-groups" aria-label="Technologies used">
+          <article class="stack-group">
+            <h3>Hardware</h3>
+            <p>Cheez.sEMG sensor, XIAO ESP32C3, battery-powered wearable prototype and 3D-printed case.</p>
+          </article>
+          <article class="stack-group">
+            <h3>Firmware</h3>
+            <p>Arduino C++, ADC sampling, envelope processing, calibration routine and BLE notify/write.</p>
+          </article>
+          <article class="stack-group">
+            <h3>App</h3>
+            <p>Flutter, Dart, BLE dashboard, raw waveform view, session tracking and exercise ranking.</p>
+          </article>
         </div>
       </div>
     </section>
