@@ -25,11 +25,17 @@ class BilateralPerformancePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardCard(
+      key: const ValueKey('activation-dashboard-card'),
       hero: true,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final panelHeight = constraints.maxWidth <= 320 ? 232.0 : 244.0;
+          final panelHeight = constraints.maxWidth <= 320 ? 270.0 : 282.0;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -86,13 +92,6 @@ class BilateralPerformancePanel extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                leftConnected
-                    ? 'Real-time muscle load'
-                    : 'Connect an EMG device to begin',
-                style: AppTypography.label,
               ),
               if (signalUnstable) ...[
                 const SizedBox(height: AppSpacing.xs),
@@ -174,7 +173,7 @@ class BilateralPerformancePanel extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               Container(
                 key: const ValueKey('biceps-dashboard-area'),
                 padding: const EdgeInsets.all(AppSpacing.sm),
@@ -203,9 +202,16 @@ class BilateralPerformancePanel extends StatelessWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         flex: 45,
-                        child: CompactLiveSummarySection(
-                          key: const ValueKey('biceps-live-summary'),
-                          state: state,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: SizedBox(
+                            height: panelHeight - AppSpacing.md,
+                            width: double.infinity,
+                            child: CompactLiveSummarySection(
+                              key: const ValueKey('biceps-live-summary'),
+                              state: state,
+                            ),
+                          ),
                         ),
                       ),
                     ],

@@ -120,7 +120,7 @@ class CompactLiveSummarySection extends StatelessWidget {
             '${state.leftActivation}%',
             style: AppTypography.metric.copyWith(
               color: AppColors.primary,
-              fontSize: 28,
+              fontSize: 24,
               height: 1,
               fontWeight: FontWeight.w700,
             ),

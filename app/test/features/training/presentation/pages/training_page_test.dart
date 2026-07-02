@@ -719,7 +719,47 @@ void main() {
       );
       expect(activationPanel.right, lessThanOrEqualTo(liveSummary.left));
       expect(activationPanel.top, liveSummary.top);
-      expect(activationPanel.height, lessThanOrEqualTo(244));
+      expect(activationPanel.height, lessThanOrEqualTo(282));
+      expect(
+        activationPanel.bottom - liveSummary.bottom,
+        greaterThanOrEqualTo(16),
+      );
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('activation-bar-track')))
+            .height,
+        greaterThan(153),
+      );
+      final activationCard = tester.getRect(
+        find.byKey(const ValueKey('activation-dashboard-card')),
+      );
+      final dashboardArea = tester.getRect(
+        find.byKey(const ValueKey('biceps-dashboard-area')),
+      );
+      expect(
+        dashboardArea.bottom - activationPanel.bottom,
+        inInclusiveRange(8, 12),
+      );
+      expect(
+        activationCard.bottom - dashboardArea.bottom,
+        inInclusiveRange(8, 12),
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('activation-percent-text')))
+            .style
+            ?.fontSize,
+        14,
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('activation-status-text')))
+            .style
+            ?.fontSize,
+        9,
+      );
+      expect(find.text('Connect an EMG device to begin'), findsNothing);
+      expect(find.text('Real-time muscle load'), findsNothing);
 
       final rankingCard = find.byKey(const ValueKey('action-ranking-card'));
       expect(rankingCard, findsOneWidget);

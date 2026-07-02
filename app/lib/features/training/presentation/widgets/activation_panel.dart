@@ -26,7 +26,7 @@ class ActivationPanel extends StatelessWidget {
     final displayValue = connected ? value : 0;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
       decoration: BoxDecoration(
         color: AppColors.card,
         border: Border.all(color: AppColors.border),
@@ -71,7 +71,7 @@ class ActivationPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -89,7 +89,7 @@ class ActivationPanel extends StatelessWidget {
                   '$displayValue',
                   key: ValueKey(displayValue),
                   style: AppTypography.metric.copyWith(
-                    fontSize: 38,
+                    fontSize: 35,
                     height: 0.95,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0,
@@ -100,28 +100,30 @@ class ActivationPanel extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 2, bottom: 2),
                 child: Text(
                   '%',
+                  key: const ValueKey('activation-percent-text'),
                   style: AppTypography.cardTitle.copyWith(
                     color: AppColors.secondary,
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 2),
           Text(
             connected
                 ? 'AVG ${average.round()}%  |  PEAK $peak%'
                 : 'Not Connected',
+            key: const ValueKey('activation-status-text'),
             style: AppTypography.label.copyWith(
-              fontSize: 10,
+              fontSize: 9,
               letterSpacing: 0.2,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 2),
           Expanded(child: _FluorescentActivationColumn(value: displayValue)),
         ],
       ),
@@ -199,6 +201,7 @@ class _FluorescentActivationColumnState
 
             return Center(
               child: SizedBox(
+                key: const ValueKey('activation-bar-track'),
                 width: 74,
                 height: constraints.maxHeight,
                 child: Stack(
