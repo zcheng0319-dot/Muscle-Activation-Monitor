@@ -1,366 +1,602 @@
 /**
- * XIAO ESP32C3 + Cheez.sEMG
+ * My_EMG M1 firmware
  *
- * Signal chain:
- * raw -> DC removal -> rectification -> envelope low-pass
- *     -> session baseline/MVC -> 0-100 Act%
+ * Hardware:
+ *   - Seeed Studio XIAO ESP32C3
+ *   - Cheez.sEMG analog signal on D0
+ *   - No wear-detection wire
  *
- * BLE payload: JSON with act, raw, env, and invalid fields.
+ * Signal path:
+ *   500 Hz ADC -> CheezsEMG v1.0.2 official filter/envelope
+ *              -> 50 Hz unnormalized envelope notifications
+ *
+ * BLE v2 sample:
+ *   {"v":2,"type":"sample","env":36,"deviceMs":1234,"seq":12}
+ *
+ * BLE v2 quality (once per second):
+ *   {"v":2,"type":"quality","deviceMs":1234,
+ *    "rawSamples":500,"nearRailSamples":0,"clipRatio":0.000000}
+ *
+ * Calibration command:
+ *   calibrate_rest
+ *
+ * The firmware intentionally does not calculate MVC percentages, activation
+ * percentages, repetitions, exercise scores, or rankings.
  */
 
 #include <BLE2902.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <CheezsEMG.h>
 
 #define EMG_PIN D0
-#define DEVICE_NAME "My_EMG"
 
+// CheezsEMG v1.0.2 requires a detect pin. This project has no yellow
+// wear-detection wire, so D1 is left physically unconnected and ignored.
+#define UNUSED_DETECT_PIN D1
+
+#define DEVICE_NAME "My_EMG"
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define EMG_CHAR_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-// Sampling and calibration timing.
-static const uint32_t kSampleIntervalMs = 10;       // 100 Hz
-static const uint32_t kOutputIntervalMs = 50;       // 20 Hz
-static const uint32_t kWarmupDurationMs = 2000;
-static const uint32_t kRelaxCalibrationMs = 3000;
-static const uint32_t kMvcCalibrationMs = 5000;
-static const uint32_t kMvcWindowMs = 1000;
+static const uint32_t kSampleRateHz = 500;
+static const uint32_t kSampleNotificationIntervalMs = 20;
+static const uint32_t kQualityNotificationIntervalMs = 1000;
+static const uint32_t kPowerStabilizationDelayMs = 300;
+static const uint32_t kAdvertisingCheckIntervalMs = 2000;
 
-// Reject samples close to the 12-bit ADC rails.
-static const int kRawValidMin = 8;
-static const int kRawValidMax = 4087;
+static const uint32_t kPrepareDurationMs = 2000;
+static const uint32_t kRestCalibrationDurationMs = 3000;
+static const uint32_t kMinimumCalibrationSamples = 1400;
 
-// Filter and output shaping.
-static const float kDcAlpha = 0.001f;
-static const float kEnvelopeAlpha = 0.12f;
-static const float kOutputAlpha = 0.30f;
-static const float kMaxStepPercent = 8.0f;
-static const float kActivationDeadbandPercent = 5.0f;
-static const float kMinimumMvcRange = 1.0f;
+static const int kNearLowRail = 8;
+static const int kNearHighRail = 4087;
 
-// The time-based MVC window allows short invalid-sample gaps.
-static const int kMvcWindowCapacity = 160;
-static const int kMinimumMvcWindowSamples = 80;
-float mvcWindowValues[kMvcWindowCapacity];
-uint32_t mvcWindowTimes[kMvcWindowCapacity];
-int mvcWindowHead = 0;
-int mvcWindowCount = 0;
-float mvcWindowSum = 0.0f;
+// M0 provisional calibration limits.
+static const float kMaximumRestClipRatio = 0.001f;
+static const float kMaximumRestDriftFraction = 0.25f;
 
-float dcLevel = 0.0f;
-float envelope = 0.0f;
-float baselineEnvelope = 0.0f;
-float sessionMVC = 1.0f;
-float actPercent = 0.0f;
-bool dcInitialized = false;
-bool deviceConnected = false;
-volatile bool calibrationRequested = false;
+static const int kEnvelopeHistogramSize = 4096;
+static const uint32_t kDriftWindowSamples = 500;
 
-int latestRaw = 0;
-bool latestInvalid = false;
-uint32_t lastOutputMs = 0;
-uint32_t nextSampleMs = 0;
+CheezsEMG emg(EMG_PIN, UNUSED_DETECT_PIN, kSampleRateHz);
 
-BLEServer* pServer = nullptr;
-BLECharacteristic* pEmgCharacteristic = nullptr;
+BLECharacteristic* emgCharacteristic = nullptr;
+BLEAdvertising* bleAdvertising = nullptr;
 
-class MyServerCallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer* server) override {
-    deviceConnected = true;
-    Serial.println("Device Connected");
-  }
+volatile bool deviceConnected = false;
+volatile bool connectionStarted = false;
+volatile bool disconnectHandled = true;
+volatile bool restCalibrationRequested = false;
 
-  void onDisconnect(BLEServer* server) override {
-    deviceConnected = false;
-    Serial.println("Device Disconnected");
-    BLEDevice::startAdvertising();
-  }
+uint32_t notificationSequence = 0;
+uint32_t lastSampleNotificationMs = 0;
+uint32_t lastAdvertisingCheckMs = 0;
+
+uint32_t qualityWindowStartedMs = 0;
+uint32_t qualityRawSamples = 0;
+uint32_t qualityNearRailSamples = 0;
+
+enum class CalibrationState {
+  uncalibrated,
+  preparing,
+  collectingRest,
+  complete,
+  failed,
 };
 
-class EmgWriteCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic* characteristic) override {
-    const auto value = characteristic->getValue();
-    String command(value.c_str());
-    command.trim();
-    command.toLowerCase();
+CalibrationState calibrationState = CalibrationState::uncalibrated;
+bool calibrationValid = false;
+uint32_t calibrationStageStartedMs = 0;
 
-    if (command == "r" || command == "calibrate" ||
-        command == "recalibrate") {
-      calibrationRequested = true;
-      Serial.println("BLE recalibration command received.");
-    }
-  }
-};
+uint32_t calibrationSampleCount = 0;
+uint32_t calibrationNearRailCount = 0;
+uint32_t calibrationEnvelopeOverflow = 0;
+uint32_t calibrationEnvelopeHistogram[kEnvelopeHistogramSize];
 
-bool isRawValid(int raw) {
-  return raw > kRawValidMin && raw < kRawValidMax;
+uint64_t calibrationDriftWindowSum = 0;
+uint32_t calibrationDriftWindowCount = 0;
+uint32_t calibrationCompletedDriftWindows = 0;
+float calibrationDriftMeanMinimum = 0.0f;
+float calibrationDriftMeanMaximum = 0.0f;
+
+int sessionBaseline = 0;
+int sessionNoise = 0;
+
+void resetQualityWindow(uint32_t nowMs) {
+  qualityWindowStartedMs = nowMs;
+  qualityRawSamples = 0;
+  qualityNearRailSamples = 0;
 }
 
-bool updateSignalChain(int raw) {
-  latestRaw = raw;
-  latestInvalid = !isRawValid(raw);
-  if (latestInvalid) {
-    return false;
-  }
+void resetCalibrationStats() {
+  calibrationSampleCount = 0;
+  calibrationNearRailCount = 0;
+  calibrationEnvelopeOverflow = 0;
 
-  if (!dcInitialized) {
-    dcLevel = static_cast<float>(raw);
-    envelope = 0.0f;
-    dcInitialized = true;
-    return true;
-  }
+  memset(
+      calibrationEnvelopeHistogram,
+      0,
+      sizeof(calibrationEnvelopeHistogram));
 
-  dcLevel += kDcAlpha * (static_cast<float>(raw) - dcLevel);
-  const float rectified = fabsf(static_cast<float>(raw) - dcLevel);
-  envelope += kEnvelopeAlpha * (rectified - envelope);
-  return true;
+  calibrationDriftWindowSum = 0;
+  calibrationDriftWindowCount = 0;
+  calibrationCompletedDriftWindows = 0;
+  calibrationDriftMeanMinimum = 0.0f;
+  calibrationDriftMeanMaximum = 0.0f;
 }
 
-void printPlotterSample() {
-  Serial.print("Act:");
-  Serial.print(actPercent, 1);
-  Serial.print(",Invalid:");
-  Serial.print(latestInvalid ? 1 : 0);
-  Serial.print(",Raw:");
-  Serial.print(latestRaw);
-  Serial.print(",Env:");
-  Serial.println(envelope, 2);
+bool isNearAdcRail(int raw) {
+  return raw <= kNearLowRail || raw >= kNearHighRail;
 }
 
-void sampleForDuration(uint32_t durationMs, bool includeInBaseline,
-                       float& envelopeSum, uint32_t& validCount) {
-  const uint32_t startMs = millis();
-  uint32_t nextSampleMs = startMs;
-  uint32_t nextOutputMs = startMs;
-
-  while (millis() - startMs < durationMs) {
-    const uint32_t now = millis();
-    if (static_cast<int32_t>(now - nextSampleMs) >= 0) {
-      nextSampleMs += kSampleIntervalMs;
-      if (updateSignalChain(analogRead(EMG_PIN)) && includeInBaseline) {
-        envelopeSum += envelope;
-        validCount++;
-      }
-    }
-
-    if (static_cast<int32_t>(now - nextOutputMs) >= 0) {
-      nextOutputMs += kOutputIntervalMs;
-      printPlotterSample();
-    }
-
-    delay(1);
-  }
-}
-
-void resetMvcWindow() {
-  mvcWindowHead = 0;
-  mvcWindowCount = 0;
-  mvcWindowSum = 0.0f;
-}
-
-void removeOldMvcSamples(uint32_t now) {
-  while (mvcWindowCount > 0 &&
-         now - mvcWindowTimes[mvcWindowHead] > kMvcWindowMs) {
-    mvcWindowSum -= mvcWindowValues[mvcWindowHead];
-    mvcWindowHead = (mvcWindowHead + 1) % kMvcWindowCapacity;
-    mvcWindowCount--;
-  }
-}
-
-void addMvcWindowSample(float value, uint32_t now) {
-  removeOldMvcSamples(now);
-
-  if (mvcWindowCount == kMvcWindowCapacity) {
-    mvcWindowSum -= mvcWindowValues[mvcWindowHead];
-    mvcWindowHead = (mvcWindowHead + 1) % kMvcWindowCapacity;
-    mvcWindowCount--;
+void notifyJson(const char* payload) {
+  if (!deviceConnected || emgCharacteristic == nullptr) {
+    return;
   }
 
-  const int tail = (mvcWindowHead + mvcWindowCount) % kMvcWindowCapacity;
-  mvcWindowValues[tail] = value;
-  mvcWindowTimes[tail] = now;
-  mvcWindowSum += value;
-  mvcWindowCount++;
+  emgCharacteristic->setValue(payload);
+  emgCharacteristic->notify();
 }
 
-void warmUpSignal() {
-  Serial.println("Warmup: keep the sensor still.");
-  float unusedSum = 0.0f;
-  uint32_t unusedCount = 0;
-  sampleForDuration(kWarmupDurationMs, false, unusedSum, unusedCount);
+void notifyCalibrationState(const char* state) {
+  char payload[112];
+
+  snprintf(
+      payload,
+      sizeof(payload),
+      "{\"v\":2,\"type\":\"calibration\",\"state\":\"%s\"}",
+      state);
+
+  notifyJson(payload);
 }
 
-void calibrateRelax() {
-  Serial.println("Relax calibration: keep the muscle relaxed for 3 seconds.");
-  float envelopeSum = 0.0f;
-  uint32_t validCount = 0;
-  sampleForDuration(
-      kRelaxCalibrationMs, true, envelopeSum, validCount);
+void notifyCalibrationFailure(const char* reason) {
+  char payload[160];
 
-  baselineEnvelope =
-      validCount > 0 ? envelopeSum / static_cast<float>(validCount) : envelope;
-  Serial.print("Baseline envelope: ");
-  Serial.println(baselineEnvelope, 2);
+  snprintf(
+      payload,
+      sizeof(payload),
+      "{\"v\":2,\"type\":\"calibration\",\"state\":\"failed\","
+      "\"reason\":\"%s\"}",
+      reason);
+
+  notifyJson(payload);
 }
 
-void calibrateMvc() {
-  Serial.println("MVC calibration: contract maximally for 5 seconds.");
-  resetMvcWindow();
-  sessionMVC = baselineEnvelope;
+void notifyCalibrationComplete(int baseline, int noise) {
+  char payload[176];
 
-  const uint32_t startMs = millis();
-  uint32_t nextSampleMs = startMs;
-  uint32_t nextOutputMs = startMs;
+  snprintf(
+      payload,
+      sizeof(payload),
+      "{\"v\":2,\"type\":\"calibration\",\"state\":\"complete\","
+      "\"baseline\":%d,\"noise\":%d,\"quality\":\"good\"}",
+      baseline,
+      noise);
 
-  while (millis() - startMs < kMvcCalibrationMs) {
-    const uint32_t now = millis();
-    if (static_cast<int32_t>(now - nextSampleMs) >= 0) {
-      nextSampleMs += kSampleIntervalMs;
-      if (updateSignalChain(analogRead(EMG_PIN))) {
-        addMvcWindowSample(envelope, now);
-        const bool windowReady =
-            now - startMs >= kMvcWindowMs &&
-            mvcWindowCount >= kMinimumMvcWindowSamples;
-        if (windowReady) {
-          const float windowMean =
-              mvcWindowSum / static_cast<float>(mvcWindowCount);
-          if (windowMean > sessionMVC) {
-            sessionMVC = windowMean;
-          }
-        }
-      }
-    }
-
-    if (static_cast<int32_t>(now - nextOutputMs) >= 0) {
-      nextOutputMs += kOutputIntervalMs;
-      printPlotterSample();
-    }
-
-    delay(1);
-  }
-
-  if (sessionMVC - baselineEnvelope < kMinimumMvcRange) {
-    sessionMVC = baselineEnvelope + kMinimumMvcRange;
-    Serial.println("Warning: MVC range was too small; using safe minimum.");
-  }
-
-  Serial.print("Session MVC: ");
-  Serial.println(sessionMVC, 2);
+  notifyJson(payload);
 }
 
-void runSessionCalibration(bool includeWarmup) {
-  actPercent = 0.0f;
-  if (includeWarmup) {
-    warmUpSignal();
-  }
-  calibrateRelax();
-  calibrateMvc();
-  lastOutputMs = millis();
-  Serial.println("Calibration complete. Send r or R to recalibrate.");
+void notifySample(int envelope, uint32_t nowMs) {
+  char payload[128];
+
+  snprintf(
+      payload,
+      sizeof(payload),
+      "{\"v\":2,\"type\":\"sample\",\"env\":%d,"
+      "\"deviceMs\":%lu,\"seq\":%lu}",
+      envelope,
+      static_cast<unsigned long>(nowMs),
+      static_cast<unsigned long>(notificationSequence++));
+
+  notifyJson(payload);
 }
 
-float calculateTargetActivation() {
-  const float range = sessionMVC - baselineEnvelope;
-  if (range <= 0.0f) {
-    return 0.0f;
-  }
-
-  float target =
-      ((envelope - baselineEnvelope) / range) * 100.0f;
-  target = constrain(target, 0.0f, 100.0f);
-  return target < kActivationDeadbandPercent ? 0.0f : target;
-}
-
-void updateActivationOutput() {
-  const float target = calculateTargetActivation();
-  float nextValue = actPercent + kOutputAlpha * (target - actPercent);
-  const float delta =
-      constrain(nextValue - actPercent, -kMaxStepPercent, kMaxStepPercent);
-  actPercent = constrain(actPercent + delta, 0.0f, 100.0f);
-  if (target == 0.0f && actPercent < 0.5f) {
-    actPercent = 0.0f;
-  }
-}
-
-void notifyActivation() {
+void notifyQuality(
+    uint32_t nowMs,
+    uint32_t rawSamples,
+    uint32_t nearRailSamples) {
   if (!deviceConnected) {
     return;
   }
 
-  const String payload =
-      "{\"act\":" + String(actPercent, 1) +
-      ",\"raw\":" + String(latestRaw) +
-      ",\"env\":" + String(envelope, 1) +
-      ",\"invalid\":" + String(latestInvalid ? 1 : 0) +
-      "}";
-  pEmgCharacteristic->setValue(payload.c_str());
-  pEmgCharacteristic->notify();
+  const float clipRatio =
+      rawSamples > 0
+          ? static_cast<float>(nearRailSamples) /
+                static_cast<float>(rawSamples)
+          : 0.0f;
+
+  char payload[192];
+
+  snprintf(
+      payload,
+      sizeof(payload),
+      "{\"v\":2,\"type\":\"quality\",\"deviceMs\":%lu,"
+      "\"rawSamples\":%lu,\"nearRailSamples\":%lu,"
+      "\"clipRatio\":%.6f}",
+      static_cast<unsigned long>(nowMs),
+      static_cast<unsigned long>(rawSamples),
+      static_cast<unsigned long>(nearRailSamples),
+      clipRatio);
+
+  notifyJson(payload);
 }
 
-void resetCalibration() {
-  actPercent = 0.0f;
-  notifyActivation();
-  runSessionCalibration(true);
-  nextSampleMs = millis();
+int calibrationHistogramMedian() {
+  const uint32_t representedSamples =
+      calibrationSampleCount - calibrationEnvelopeOverflow;
+
+  if (representedSamples == 0) {
+    return 0;
+  }
+
+  const uint32_t target = (representedSamples - 1) / 2;
+  uint32_t cumulative = 0;
+
+  for (int value = 0; value < kEnvelopeHistogramSize; value++) {
+    cumulative += calibrationEnvelopeHistogram[value];
+
+    if (cumulative > target) {
+      return value;
+    }
+  }
+
+  return kEnvelopeHistogramSize - 1;
 }
+
+int calibrationHistogramMad(int median) {
+  const uint32_t representedSamples =
+      calibrationSampleCount - calibrationEnvelopeOverflow;
+
+  if (representedSamples == 0) {
+    return 0;
+  }
+
+  const uint32_t target = (representedSamples - 1) / 2;
+  uint32_t cumulative = calibrationEnvelopeHistogram[median];
+
+  if (cumulative > target) {
+    return 0;
+  }
+
+  for (int deviation = 1;
+       deviation < kEnvelopeHistogramSize;
+       deviation++) {
+    const int lower = median - deviation;
+    const int upper = median + deviation;
+
+    if (lower >= 0) {
+      cumulative += calibrationEnvelopeHistogram[lower];
+    }
+
+    if (upper < kEnvelopeHistogramSize) {
+      cumulative += calibrationEnvelopeHistogram[upper];
+    }
+
+    if (cumulative > target) {
+      return deviation;
+    }
+  }
+
+  return kEnvelopeHistogramSize - 1;
+}
+
+void addCalibrationSample(int raw, int envelope) {
+  calibrationSampleCount++;
+
+  if (isNearAdcRail(raw)) {
+    calibrationNearRailCount++;
+  }
+
+  if (envelope >= 0 && envelope < kEnvelopeHistogramSize) {
+    calibrationEnvelopeHistogram[envelope]++;
+  } else {
+    calibrationEnvelopeOverflow++;
+  }
+
+  calibrationDriftWindowSum +=
+      static_cast<uint64_t>(envelope >= 0 ? envelope : 0);
+
+  calibrationDriftWindowCount++;
+
+  if (calibrationDriftWindowCount == kDriftWindowSamples) {
+    const float windowMean =
+        static_cast<float>(calibrationDriftWindowSum) /
+        static_cast<float>(kDriftWindowSamples);
+
+    if (calibrationCompletedDriftWindows == 0) {
+      calibrationDriftMeanMinimum = windowMean;
+      calibrationDriftMeanMaximum = windowMean;
+    } else {
+      calibrationDriftMeanMinimum =
+          min(calibrationDriftMeanMinimum, windowMean);
+
+      calibrationDriftMeanMaximum =
+          max(calibrationDriftMeanMaximum, windowMean);
+    }
+
+    calibrationCompletedDriftWindows++;
+    calibrationDriftWindowSum = 0;
+    calibrationDriftWindowCount = 0;
+  }
+}
+
+void failCalibration(const char* reason) {
+  calibrationState = CalibrationState::failed;
+  calibrationValid = false;
+
+  notifyCalibrationFailure(reason);
+
+  Serial.print("Calibration failed: ");
+  Serial.println(reason);
+}
+
+void finishRestCalibration() {
+  if (calibrationSampleCount < kMinimumCalibrationSamples ||
+      calibrationCompletedDriftWindows < 2) {
+    failCalibration("insufficient_samples");
+    return;
+  }
+
+  const float clipRatio =
+      static_cast<float>(calibrationNearRailCount) /
+      static_cast<float>(calibrationSampleCount);
+
+  if (clipRatio > kMaximumRestClipRatio) {
+    failCalibration("clipping_detected");
+    return;
+  }
+
+  if (calibrationEnvelopeOverflow > 0) {
+    failCalibration("internal_error");
+    return;
+  }
+
+  const int baseline = calibrationHistogramMedian();
+  const int noise = calibrationHistogramMad(baseline);
+
+  const float driftRange =
+      calibrationDriftMeanMaximum - calibrationDriftMeanMinimum;
+
+  const float driftFraction =
+      baseline > 0
+          ? driftRange / static_cast<float>(baseline)
+          : 1.0f;
+
+  if (driftFraction > kMaximumRestDriftFraction) {
+    failCalibration("unstable_baseline");
+    return;
+  }
+
+  sessionBaseline = baseline;
+  sessionNoise = noise;
+  calibrationState = CalibrationState::complete;
+  calibrationValid = true;
+
+  notifyCalibrationComplete(sessionBaseline, sessionNoise);
+
+  Serial.print("Calibration complete. Baseline=");
+  Serial.print(sessionBaseline);
+  Serial.print(", noise=");
+  Serial.println(sessionNoise);
+}
+
+void startRestCalibration(uint32_t nowMs) {
+  calibrationValid = false;
+  calibrationState = CalibrationState::preparing;
+  calibrationStageStartedMs = nowMs;
+
+  resetCalibrationStats();
+  notifyCalibrationState("preparing");
+
+  Serial.println("Rest calibration preparing.");
+}
+
+void advanceCalibration(uint32_t nowMs) {
+  if (calibrationState == CalibrationState::preparing &&
+      nowMs - calibrationStageStartedMs >= kPrepareDurationMs) {
+    calibrationState = CalibrationState::collectingRest;
+    calibrationStageStartedMs = nowMs;
+
+    resetCalibrationStats();
+    notifyCalibrationState("collecting_rest");
+
+    Serial.println("Collecting relaxed baseline.");
+    return;
+  }
+
+  if (calibrationState == CalibrationState::collectingRest &&
+      nowMs - calibrationStageStartedMs >=
+          kRestCalibrationDurationMs) {
+    finishRestCalibration();
+  }
+}
+
+void handleConnectionLifecycle(uint32_t nowMs) {
+  if (connectionStarted) {
+    connectionStarted = false;
+    disconnectHandled = false;
+
+    notificationSequence = 0;
+    lastSampleNotificationMs = nowMs;
+    resetQualityWindow(nowMs);
+  }
+
+  if (!deviceConnected && !disconnectHandled) {
+    disconnectHandled = true;
+    calibrationValid = false;
+    calibrationState = CalibrationState::uncalibrated;
+    restCalibrationRequested = false;
+  }
+}
+
+void updateQualityWindow(int raw, uint32_t nowMs) {
+  qualityRawSamples++;
+
+  if (isNearAdcRail(raw)) {
+    qualityNearRailSamples++;
+  }
+
+  if (nowMs - qualityWindowStartedMs <
+      kQualityNotificationIntervalMs) {
+    return;
+  }
+
+  const uint32_t rawSamples = qualityRawSamples;
+  const uint32_t nearRailSamples = qualityNearRailSamples;
+
+  resetQualityWindow(nowMs);
+  notifyQuality(nowMs, rawSamples, nearRailSamples);
+}
+
+class ServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer*) override {
+    deviceConnected = true;
+    connectionStarted = true;
+
+    Serial.println("BLE connected.");
+  }
+
+  void onDisconnect(BLEServer*) override {
+    deviceConnected = false;
+    if (bleAdvertising != nullptr) {
+      bleAdvertising->start();
+    }
+
+    Serial.println("BLE disconnected.");
+  }
+};
+
+class CommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const auto value = characteristic->getValue();
+
+    String command(value.c_str());
+    command.trim();
+    command.toLowerCase();
+
+    if (command == "calibrate_rest") {
+      restCalibrationRequested = true;
+      Serial.println("calibrate_rest received.");
+    }
+  }
+};
 
 void initializeBle() {
+  Serial.println("[boot] Initializing BLE device.");
   BLEDevice::init(DEVICE_NAME);
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
+  BLEDevice::setMTU(128);
 
-  BLEService* pService = pServer->createService(SERVICE_UUID);
-  pEmgCharacteristic = pService->createCharacteristic(
+  Serial.println("[boot] Creating BLE server and service.");
+  BLEServer* server = BLEDevice::createServer();
+  server->setCallbacks(new ServerCallbacks());
+
+  BLEService* service =
+      server->createService(SERVICE_UUID);
+
+  emgCharacteristic = service->createCharacteristic(
       EMG_CHAR_UUID,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY |
+      BLECharacteristic::PROPERTY_READ |
+          BLECharacteristic::PROPERTY_NOTIFY |
           BLECharacteristic::PROPERTY_WRITE);
-  pEmgCharacteristic->addDescriptor(new BLE2902());
-  pEmgCharacteristic->setCallbacks(new EmgWriteCallbacks());
 
-  pService->start();
-  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
-  BLEDevice::startAdvertising();
+  emgCharacteristic->addDescriptor(new BLE2902());
+  emgCharacteristic->setCallbacks(new CommandCallbacks());
 
-  Serial.println("BLE Advertising started! Device: " + String(DEVICE_NAME));
+  emgCharacteristic->setValue(
+      "{\"v\":2,\"type\":\"status\","
+      "\"calibration\":\"uncalibrated\"}");
+
+  service->start();
+  Serial.println("[boot] BLE service started.");
+
+  bleAdvertising = BLEDevice::getAdvertising();
+
+  bleAdvertising->addServiceUUID(SERVICE_UUID);
+  bleAdvertising->setScanResponse(true);
+
+  bleAdvertising->start();
+
+  Serial.println("BLE advertising started.");
+}
+
+void ensureAdvertising(uint32_t nowMs) {
+  if (deviceConnected || bleAdvertising == nullptr ||
+      nowMs - lastAdvertisingCheckMs < kAdvertisingCheckIntervalMs) {
+    return;
+  }
+
+  lastAdvertisingCheckMs = nowMs;
+
+  if (!bleAdvertising->isAdvertising()) {
+    Serial.println("[BLE] Advertising stopped; restarting.");
+    bleAdvertising->start();
+  }
 }
 
 void setup() {
   Serial.begin(115200);
-  analogReadResolution(12);
+  delay(kPowerStabilizationDelayMs);
+  Serial.println("[boot] Power stabilization delay complete.");
 
-  runSessionCalibration(true);
   initializeBle();
-  nextSampleMs = millis();
+
+  Serial.println("[boot] Initializing ADC and CheezsEMG.");
+
+  analogReadResolution(12);
+  analogSetPinAttenuation(EMG_PIN, ADC_11db);
+
+  emg.begin();
+  Serial.println("[boot] CheezsEMG initialized.");
+
+  const uint32_t nowMs = millis();
+
+  lastSampleNotificationMs = nowMs;
+  lastAdvertisingCheckMs = nowMs;
+  resetQualityWindow(nowMs);
+
+  Serial.println(
+      "My_EMG M1 ready. Waiting for calibrate_rest.");
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    const char command = Serial.read();
-    if (command == 'r' || command == 'R') {
-      calibrationRequested = true;
+  const uint32_t nowMs = millis();
+
+  handleConnectionLifecycle(nowMs);
+  ensureAdvertising(nowMs);
+
+  if (restCalibrationRequested) {
+    restCalibrationRequested = false;
+    startRestCalibration(nowMs);
+  }
+
+  advanceCalibration(nowMs);
+
+  if (CheezsEMG::checkSampleInterval()) {
+    emg.processSignal();
+
+    const int raw = emg.getRawSignal();
+    const int envelope = emg.getEnvelopeSignal();
+    const uint32_t sampledMs = millis();
+
+    updateQualityWindow(raw, sampledMs);
+
+    if (calibrationState ==
+        CalibrationState::collectingRest) {
+      addCalibrationSample(raw, envelope);
     }
   }
 
-  if (calibrationRequested) {
-    calibrationRequested = false;
-    resetCalibration();
-  }
+  const uint32_t outputMs = millis();
 
-  const uint32_t now = millis();
-  if (static_cast<int32_t>(now - nextSampleMs) >= 0) {
-    nextSampleMs += kSampleIntervalMs;
-    updateSignalChain(analogRead(EMG_PIN));
-  }
+  if (outputMs - lastSampleNotificationMs >=
+      kSampleNotificationIntervalMs) {
+    lastSampleNotificationMs = outputMs;
 
-  if (now - lastOutputMs >= kOutputIntervalMs) {
-    lastOutputMs = now;
-    updateActivationOutput();
-    notifyActivation();
-    printPlotterSample();
+    notifySample(
+        emg.getEnvelopeSignal(),
+        outputMs);
   }
-
-  delay(1);
 }

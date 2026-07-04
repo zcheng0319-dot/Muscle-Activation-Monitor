@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:myemg/features/devices/domain/entities/emg_packet.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -121,6 +122,8 @@ class EmgDeviceConnection {
     this.rawEmg = 0,
     this.smoothEmg = 0,
     this.isInvalidSample = false,
+    this.protocolVersion = EmgProtocolVersion.unknown,
+    this.protocolDetectionTimedOut = false,
   });
 
   final DeviceSide side;
@@ -130,6 +133,16 @@ class EmgDeviceConnection {
   final double rawEmg;
   final double smoothEmg;
   final bool isInvalidSample;
+  final EmgProtocolVersion protocolVersion;
+  final bool protocolDetectionTimedOut;
+
+  bool get supportsComparison {
+    return connected && protocolVersion == EmgProtocolVersion.v2;
+  }
+
+  bool get firmwareUpdateRequired {
+    return connected && protocolVersion == EmgProtocolVersion.legacy;
+  }
 
   int get activationPercent {
     if (!smoothEmg.isFinite || smoothEmg <= 0) return 0;
@@ -153,6 +166,8 @@ class EmgDeviceConnection {
     double? rawEmg,
     double? smoothEmg,
     bool? isInvalidSample,
+    EmgProtocolVersion? protocolVersion,
+    bool? protocolDetectionTimedOut,
   }) {
     return EmgDeviceConnection(
       side: side,
@@ -162,6 +177,9 @@ class EmgDeviceConnection {
       rawEmg: rawEmg ?? this.rawEmg,
       smoothEmg: smoothEmg ?? this.smoothEmg,
       isInvalidSample: isInvalidSample ?? this.isInvalidSample,
+      protocolVersion: protocolVersion ?? this.protocolVersion,
+      protocolDetectionTimedOut:
+          protocolDetectionTimedOut ?? this.protocolDetectionTimedOut,
     );
   }
 }
@@ -197,7 +215,35 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
   final _connectionStateSubscriptions =
       <DeviceSide, StreamSubscription<BluetoothConnectionState>>{};
   final _connectedDevices = <DeviceSide, BluetoothDevice>{};
+  final _sampleControllers = <DeviceSide, StreamController<EmgSample>>{
+    for (final side in DeviceSide.values)
+      side: StreamController<EmgSample>.broadcast(sync: true),
+  };
+  final _qualityControllers = <DeviceSide, StreamController<EmgQuality>>{
+    for (final side in DeviceSide.values)
+      side: StreamController<EmgQuality>.broadcast(sync: true),
+  };
+  final _calibrationControllers =
+      <DeviceSide, StreamController<EmgCalibration>>{
+        for (final side in DeviceSide.values)
+          side: StreamController<EmgCalibration>.broadcast(sync: true),
+      };
+  final _lastDeviceMs = <DeviceSide, int>{};
+  final _lastSequence = <DeviceSide, int>{};
+  final _protocolDetectionTimers = <DeviceSide, Timer>{};
   bool _bleInitialized = false;
+
+  Stream<EmgSample> sampleStream(DeviceSide side) {
+    return _sampleControllers[side]!.stream;
+  }
+
+  Stream<EmgQuality> qualityStream(DeviceSide side) {
+    return _qualityControllers[side]!.stream;
+  }
+
+  Stream<EmgCalibration> calibrationStream(DeviceSide side) {
+    return _calibrationControllers[side]!.stream;
+  }
 
   @override
   DeviceConnectionState build() {
@@ -210,6 +256,18 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
       }
       for (final subscription in _connectionStateSubscriptions.values) {
         subscription.cancel();
+      }
+      for (final controller in _sampleControllers.values) {
+        unawaited(controller.close());
+      }
+      for (final controller in _qualityControllers.values) {
+        unawaited(controller.close());
+      }
+      for (final controller in _calibrationControllers.values) {
+        unawaited(controller.close());
+      }
+      for (final timer in _protocolDetectionTimers.values) {
+        timer.cancel();
       }
       if (_bleInitialized) {
         unawaited(_stopScanQuietly());
@@ -413,6 +471,7 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         // Some Android devices negotiate MTU automatically or reject requests.
       }
     }
+    _resetV2Transport(side);
     await _subscribeToEmgCharacteristic(side, bluetoothDevice);
     await _listenToConnectionState(side, bluetoothDevice);
     _connectedDevices[side] = bluetoothDevice;
@@ -429,10 +488,13 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           rawEmg: 0,
           smoothEmg: 0,
           isInvalidSample: false,
+          protocolVersion: state.leftDevice.protocolVersion,
+          protocolDetectionTimedOut: false,
         ),
         leftBoundDevice: BoundBleDevice(id: remoteId, name: name),
         clearScanError: true,
       );
+      _startProtocolDetectionTimer(side);
       return;
     }
 
@@ -445,10 +507,13 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         rawEmg: 0,
         smoothEmg: 0,
         isInvalidSample: false,
+        protocolVersion: state.rightDevice.protocolVersion,
+        protocolDetectionTimedOut: false,
       ),
       rightBoundDevice: BoundBleDevice(id: remoteId, name: name),
       clearScanError: true,
     );
+    _startProtocolDetectionTimer(side);
   }
 
   Future<void> disconnect(DeviceSide side) async {
@@ -471,6 +536,8 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         // The UI should still reflect the local disconnect request.
       }
     }
+    _resetV2Transport(side);
+    _cancelProtocolDetectionTimer(side);
 
     if (side == DeviceSide.left) {
       state = state.copyWith(
@@ -480,6 +547,8 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           rawEmg: 0,
           smoothEmg: 0,
           isInvalidSample: false,
+          protocolVersion: EmgProtocolVersion.unknown,
+          protocolDetectionTimedOut: false,
         ),
       );
       return;
@@ -492,8 +561,62 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         rawEmg: 0,
         smoothEmg: 0,
         isInvalidSample: false,
+        protocolVersion: EmgProtocolVersion.unknown,
+        protocolDetectionTimedOut: false,
       ),
     );
+  }
+
+  Future<bool> sendRestCalibrationCommand({
+    DeviceSide side = DeviceSide.left,
+  }) async {
+    final device = _deviceForSide(side);
+    final characteristic = _emgCharacteristics[side];
+    if (!device.connected ||
+        device.protocolVersion != EmgProtocolVersion.v2 ||
+        characteristic == null ||
+        !characteristic.properties.write) {
+      return false;
+    }
+
+    try {
+      await characteristic
+          .write(utf8.encode('calibrate_rest'), withoutResponse: false)
+          .timeout(const Duration(seconds: 5));
+      return true;
+    } on Object catch (error) {
+      state = state.copyWith(
+        scanError: 'Could not start relaxed calibration: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> retryProtocolDetection({
+    DeviceSide side = DeviceSide.left,
+  }) async {
+    final device = _deviceForSide(side);
+    final characteristic = _emgCharacteristics[side];
+    if (!device.connected || characteristic == null) return false;
+
+    _resetV2Transport(side);
+    _setProtocolState(
+      side,
+      protocolVersion: EmgProtocolVersion.unknown,
+      protocolDetectionTimedOut: false,
+    );
+    try {
+      await characteristic.setNotifyValue(false);
+      await characteristic.setNotifyValue(true);
+      _startProtocolDetectionTimer(side);
+      return true;
+    } on Object catch (error) {
+      state = state.copyWith(
+        scanError: 'Could not retry firmware identification: $error',
+      );
+      _markProtocolDetectionTimedOut(side);
+      return false;
+    }
   }
 
   Future<bool> sendRecalibrateCommand() async {
@@ -564,6 +687,8 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
     await _emgSubscriptions.remove(side)?.cancel();
     _emgCharacteristics.remove(side);
     _connectedDevices.remove(side);
+    _resetV2Transport(side);
+    _cancelProtocolDetectionTimer(side);
 
     if (side == DeviceSide.left) {
       state = state.copyWith(
@@ -573,6 +698,8 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
           rawEmg: 0,
           smoothEmg: 0,
           isInvalidSample: false,
+          protocolVersion: EmgProtocolVersion.unknown,
+          protocolDetectionTimedOut: false,
         ),
       );
       return;
@@ -585,6 +712,8 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
         rawEmg: 0,
         smoothEmg: 0,
         isInvalidSample: false,
+        protocolVersion: EmgProtocolVersion.unknown,
+        protocolDetectionTimedOut: false,
       ),
     );
   }
@@ -637,9 +766,37 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
   }
 
   void _handleEmgValue(DeviceSide side, List<int> value) {
+    final v2Packet = decodeEmgV2Packet(value);
+    var protocol = _deviceForSide(side).protocolVersion;
+
+    if (v2Packet != null) {
+      if (protocol == EmgProtocolVersion.unknown &&
+          v2Packet.identifiesV2Protocol) {
+        _setProtocol(side, EmgProtocolVersion.v2);
+        protocol = EmgProtocolVersion.v2;
+      }
+      if (protocol != EmgProtocolVersion.v2) return;
+
+      switch (v2Packet) {
+        case EmgSample():
+          _sampleControllers[side]!.add(_annotateTransport(side, v2Packet));
+        case EmgQuality():
+          _qualityControllers[side]!.add(v2Packet);
+        case EmgCalibration():
+          _calibrationControllers[side]!.add(v2Packet);
+      }
+      return;
+    }
+
     final payload = _parseEmgPayload(value);
     if (payload == null) return;
     if (!payload.rawEmg.isFinite || !payload.smoothEmg.isFinite) return;
+
+    if (protocol == EmgProtocolVersion.unknown) {
+      _setProtocol(side, EmgProtocolVersion.legacy);
+      protocol = EmgProtocolVersion.legacy;
+    }
+    if (protocol != EmgProtocolVersion.legacy) return;
 
     if (side == DeviceSide.left) {
       if (payload.invalid) {
@@ -669,6 +826,101 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
       isInvalidSample: false,
     );
     state = state.copyWith(rightDevice: nextDevice);
+  }
+
+  EmgSample _annotateTransport(DeviceSide side, EmgSample sample) {
+    final previousDeviceMs = _lastDeviceMs[side];
+    final previousSequence = _lastSequence[side];
+    final deviceRestarted =
+        previousDeviceMs != null && sample.deviceMs < previousDeviceMs;
+
+    var missingSamples = 0;
+    if (!deviceRestarted && previousSequence != null) {
+      final sequenceDelta = (sample.seq - previousSequence) & 0xffffffff;
+      if (sequenceDelta > 1 && sequenceDelta <= 0x7fffffff) {
+        missingSamples = sequenceDelta - 1;
+      }
+    }
+
+    _lastDeviceMs[side] = sample.deviceMs;
+    _lastSequence[side] = sample.seq;
+    return sample.withTransportStatus(
+      missingSamples: missingSamples,
+      deviceRestarted: deviceRestarted,
+    );
+  }
+
+  void _resetV2Transport(DeviceSide side) {
+    _lastDeviceMs.remove(side);
+    _lastSequence.remove(side);
+  }
+
+  void _setProtocol(DeviceSide side, EmgProtocolVersion protocolVersion) {
+    _cancelProtocolDetectionTimer(side);
+    _setProtocolState(
+      side,
+      protocolVersion: protocolVersion,
+      protocolDetectionTimedOut: false,
+    );
+  }
+
+  void _setProtocolState(
+    DeviceSide side, {
+    required EmgProtocolVersion protocolVersion,
+    required bool protocolDetectionTimedOut,
+  }) {
+    final device = _deviceForSide(side);
+    if (device.protocolVersion == protocolVersion &&
+        device.protocolDetectionTimedOut == protocolDetectionTimedOut) {
+      return;
+    }
+
+    if (side == DeviceSide.left) {
+      state = state.copyWith(
+        leftDevice: device.copyWith(
+          protocolVersion: protocolVersion,
+          protocolDetectionTimedOut: protocolDetectionTimedOut,
+        ),
+      );
+      return;
+    }
+    state = state.copyWith(
+      rightDevice: device.copyWith(
+        protocolVersion: protocolVersion,
+        protocolDetectionTimedOut: protocolDetectionTimedOut,
+      ),
+    );
+  }
+
+  void _startProtocolDetectionTimer(DeviceSide side) {
+    _cancelProtocolDetectionTimer(side);
+    final device = _deviceForSide(side);
+    if (!device.connected ||
+        device.protocolVersion != EmgProtocolVersion.unknown) {
+      return;
+    }
+    _protocolDetectionTimers[side] = Timer(
+      const Duration(seconds: 5),
+      () => _markProtocolDetectionTimedOut(side),
+    );
+  }
+
+  void _markProtocolDetectionTimedOut(DeviceSide side) {
+    _protocolDetectionTimers.remove(side)?.cancel();
+    final device = _deviceForSide(side);
+    if (!device.connected ||
+        device.protocolVersion != EmgProtocolVersion.unknown) {
+      return;
+    }
+    _setProtocolState(
+      side,
+      protocolVersion: EmgProtocolVersion.unknown,
+      protocolDetectionTimedOut: true,
+    );
+  }
+
+  void _cancelProtocolDetectionTimer(DeviceSide side) {
+    _protocolDetectionTimers.remove(side)?.cancel();
   }
 
   _EmgPayload? _parseEmgPayload(List<int> value) {

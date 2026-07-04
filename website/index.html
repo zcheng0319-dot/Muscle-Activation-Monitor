@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="MyEMG is a wearable EMG device and mobile app for comparing how strongly different exercises activate a selected target muscle.">
-  <title>MyEMG — Real-time Muscle Activation Monitor</title>
+  <meta name="description" content="MyEMG compares local surface EMG activity from different exercises within one controlled electrode-placement session.">
+  <title>MyEMG — Within-session EMG Comparison</title>
   <link rel="icon" type="image/png" href="assets/MyEmg icon  .png">
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
@@ -29,13 +29,13 @@
     <section class="hero section">
       <div class="container hero-grid">
         <div class="hero-copy reveal">
-          <div class="eyebrow"><span class="status-dot"></span> Wearable EMG monitoring</div>
+          <div class="eyebrow"><span class="status-dot"></span> Controlled within-session EMG comparison</div>
           <img class="hero-logo" src="assets/MyEmg icon  .png" alt="MyEMG app logo" width="92" height="92">
-          <h1><span>MyEMG</span><br>Real-time Muscle<br>Activation Monitor</h1>
+          <h1><span>MyEMG</span><br>Compare Exercises<br>Within One Session</h1>
           <p class="hero-description">
-            Find out which exercises activate your target muscle the most. MyEMG is a
-            wearable EMG device and mobile app that turns invisible muscle activity into
-            live 0–100% feedback, helping beginners compare different movements.
+            MyEMG records local surface EMG activity while you test multiple exercises
+            without changing electrode placement. One relaxed calibration keeps every
+            action in the session on the same local reference.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#demo">View Demo <span aria-hidden="true">→</span></a>
@@ -44,31 +44,31 @@
           <div class="hero-meta" aria-label="Project highlights">
             <span><strong>Wearable</strong> EMG device</span>
             <span><strong>Mobile</strong> app</span>
-            <span><strong>0–100%</strong> activation</span>
-            <span><strong>Exercise</strong> ranking</span>
+            <span><strong>One</strong> relaxed baseline</span>
+            <span><strong>Session-only</strong> comparison</span>
           </div>
         </div>
 
         <div class="hero-visual reveal" aria-label="MyEMG mobile dashboard preview">
           <div class="signal-card signal-card-back">
-            <span>Raw EMG</span>
-            <svg viewBox="0 0 360 90" role="img" aria-label="Example EMG waveform">
+            <span>Adjusted envelope</span>
+            <svg viewBox="0 0 360 90" role="img" aria-label="Example adjusted EMG envelope">
               <polyline points="0,45 28,44 44,48 54,36 62,58 72,20 81,69 91,31 99,53 111,42 136,45 151,43 161,50 171,25 181,63 191,17 201,70 210,34 221,51 232,42 253,45 269,43 283,48 294,37 305,54 317,29 329,59 341,40 360,45"/>
             </svg>
           </div>
           <div class="phone">
             <div class="phone-top"><span>MyEMG</span><span class="connected"><i></i> My_EMG connected</span></div>
             <div class="phone-content">
-              <p>Example: Biceps activation</p>
+              <p>Example: Biceps comparison</p>
               <div class="activation-ring">
-                <div><strong>72</strong><span>%</span></div>
+                <div><strong>255</strong><span>env</span></div>
               </div>
               <div class="phone-stats">
-                <div><span>Average</span><strong>48%</strong></div>
-                <div><span>Peak</span><strong>86%</strong></div>
-                <div><span>Reps</span><strong>12</strong></div>
+                <div><span>Action</span><strong>Curl</strong></div>
+                <div><span>Reps</span><strong>8</strong></div>
+                <div><span>Quality</span><strong>Good</strong></div>
               </div>
-              <button type="button" tabindex="-1">Recalibrate EMG</button>
+              <button type="button" tabindex="-1">Review this action</button>
             </div>
           </div>
         </div>
@@ -79,15 +79,15 @@
       <div class="container">
         <div class="section-heading reveal">
           <span class="section-kicker">Project overview</span>
-          <h2>Stop guessing which exercise works best.</h2>
-          <p>Muscle activity is usually invisible. Beginners often rely on feeling or guesswork to know whether an exercise is working.</p>
+          <h2>Compare exercises under one controlled setup.</h2>
+          <p>Surface EMG amplitude changes with electrode placement, calibration and signal quality. MyEMG keeps comparisons inside one uninterrupted session.</p>
         </div>
         <div class="overview-card reveal">
           <div>
             <span class="overview-label">The solution</span>
-            <h3>Turn muscle signals into useful feedback</h3>
+            <h3>Keep every action on the same local reference</h3>
           </div>
-          <p>MyEMG turns muscle signals into a live 0–100% activation level. Users can perform different exercises for the same target muscle and compare Average and Peak activation in the app. The current app supports Biceps, Triceps and Legs, and can be extended to other target muscles.</p>
+          <p>Choose a target muscle and at least two actions, complete one relaxed calibration, then record each action without moving the electrodes. Results use the median of valid repetition-level adjusted-envelope means and apply only to that session.</p>
           <div class="overview-specs">
             <span>Cheez.sEMG sensor</span>
             <span>XIAO ESP32C3</span>
@@ -102,28 +102,28 @@
       <div class="container">
         <div class="section-heading reveal">
           <span class="section-kicker">How it works</span>
-          <h2>Four steps. One live signal.</h2>
+          <h2>Four steps. One controlled comparison.</h2>
         </div>
         <div class="steps-grid">
           <article class="step-card reveal">
             <span class="step-number">01</span>
             <h3>Choose a target muscle</h3>
-            <p>Select the muscle you want to train or test.</p>
+            <p>Select the target muscle and at least two actions to compare.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">02</span>
-            <h3>Wear and calibrate</h3>
-            <p>Place the EMG sensor on the target muscle, then follow a short guided calibration flow.</p>
+            <h3>Place and calibrate once</h3>
+            <p>Attach the electrodes, keep the muscle relaxed and establish the session baseline.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">03</span>
-            <h3>Watch live activation</h3>
-            <p>See muscle effort as a real-time percentage and vertical bar chart in the app.</p>
+            <h3>Record each action</h3>
+            <p>Use the live adjusted-envelope curve and feedback bar while moving at your own rhythm.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">04</span>
-            <h3>Compare exercises</h3>
-            <p>MyEMG saves Average, Peak, Time and Reps, then ranks which movement activated the target muscle most effectively.</p>
+            <h3>Review and compare</h3>
+            <p>Confirm reliable rep boundaries, then view this session's actions ordered by their local EMG metric.</p>
           </article>
         </div>
       </div>
@@ -136,12 +136,12 @@
           <h2>Everything needed for a focused session.</h2>
         </div>
         <div class="feature-grid">
-          <article class="feature-card reveal"><span class="feature-icon">%</span><h3>Real-time Activation</h3><p>See target muscle effort as a live 0–100% percentage.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Vertical Bar Chart</h3><p>Understand muscle effort quickly through a simple visual dashboard.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Guided Calibration</h3><p>Set a personal baseline before training for more meaningful feedback.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Raw EMG Waveform</h3><p>View the original signal behind the activation percentage.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">↗</span><h3>Session Metrics</h3><p>Record Average, Peak, Time and estimated Reps for every saved session.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Best Exercises Ranking</h3><p>Compare different exercises for the same muscle and clearly identify which movement activates it most effectively.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">⇄</span><h3>Within-session Comparison</h3><p>Compare actions only while electrode placement and calibration remain unchanged.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Live Envelope Feedback</h3><p>Follow the adjusted-envelope curve and bar without treating either as the final score.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Relaxed Calibration</h3><p>Establish one local baseline that is reused throughout the comparison.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Rep Review</h3><p>Review detected repetitions and request a supported count before confirming an action.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">✓</span><h3>Signal-quality Gates</h3><p>Reject action windows affected by packet loss, clipping or insufficient quality data.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Session Results</h3><p>Order valid actions by their repetition-level local EMG metric for this session only.</p></article>
         </div>
       </div>
     </section>
@@ -175,12 +175,12 @@
         <div class="section-heading centered reveal">
           <span class="section-kicker">Video demo</span>
           <h2>See MyEMG in action.</h2>
-          <p>The final demo video will show the wearable setup, recalibration flow, live activation dashboard, raw waveform view and Best Exercises ranking.</p>
+          <p>The final demo will show sensor placement, relaxed calibration, live envelope feedback, rep review and a two-action session result.</p>
         </div>
         <div class="video-placeholder reveal">
           <div class="play-button" aria-hidden="true"><span></span></div>
           <strong>Final project demonstration</strong>
-          <p>Wearable setup, calibration, live EMG feedback and exercise comparison</p>
+          <p>Wearable setup, one calibration, action recording and session comparison</p>
         </div>
       </div>
     </section>
@@ -194,20 +194,20 @@
             <i></i>
           </div>
           <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Choose Biceps, Triceps or Legs</small></div><b>Selected</b></div>
-          <div class="flow-item"><span>2</span><div><strong>Recalibrate EMG</strong><small>Set a personal baseline and maximum contraction</small></div><b>Ready</b></div>
-          <div class="flow-item"><span>3</span><div><strong>Train and compare</strong><small>View live activation, raw waveform and ranked exercises</small></div><b>Live</b></div>
+          <div class="flow-item"><span>2</span><div><strong>Calibrate at rest</strong><small>Set one local baseline for this placement</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>3</span><div><strong>Record and compare</strong><small>Review reps and compare valid actions in this session</small></div><b>Live</b></div>
         </div>
         <div class="split-copy reveal">
           <span class="section-kicker">App preview</span>
-          <h2>Live feedback that leads to a clearer choice.</h2>
-          <p>The app shows live activation through a percentage and vertical bar chart. After training, each session is saved with Average, Peak, Time and Reps. Best Exercises ranks saved exercises for the selected muscle, helping users understand which movement worked better. The example may show Biceps, but the same concept applies to any selected target muscle.</p>
+          <h2>Live feedback, then a session-scoped result.</h2>
+          <p>The app displays adjusted-envelope feedback during recording, segments repetitions and lets the user review the count. Valid actions are compared only within the current placement and calibration; the result is not a muscle-force percentage or a cross-session claim.</p>
           <div class="mini-metrics">
-            <div><strong>Average</strong><span>Session effort</span></div>
-            <div><strong>Peak</strong><span>Maximum activation</span></div>
-            <div><strong>Time</strong><span>Session duration</span></div>
-            <div><strong>Reps</strong><span>Movement count</span></div>
-            <div><strong>Waveform</strong><span>Raw signal view</span></div>
-            <div><strong>Best Exercises</strong><span>Ranked saved sets</span></div>
+            <div><strong>Baseline</strong><span>Local rest reference</span></div>
+            <div><strong>Envelope</strong><span>Live adjusted signal</span></div>
+            <div><strong>Reps</strong><span>Reviewed boundaries</span></div>
+            <div><strong>Quality</strong><span>Loss and clipping checks</span></div>
+            <div><strong>Median</strong><span>Valid rep means</span></div>
+            <div><strong>Results</strong><span>This session only</span></div>
           </div>
         </div>
       </div>
@@ -230,7 +230,7 @@
           </article>
           <article class="stack-group">
             <h3>App</h3>
-            <p>Flutter, Dart, BLE dashboard, raw waveform view, session tracking and exercise ranking.</p>
+            <p>Flutter, Dart, BLE v2 identification, live envelope feedback, rep review and within-session comparison.</p>
           </article>
         </div>
       </div>
