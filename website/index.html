@@ -158,12 +158,20 @@
             <li>Wireless, untethered feedback</li>
           </ul>
         </div>
-        <div class="media-placeholder device-placeholder reveal">
-          <div class="placeholder-mark" aria-hidden="true">
-            <span></span><span></span><span></span>
+        <div class="device-carousel reveal" data-device-carousel>
+          <div class="device-carousel__viewport" data-carousel-viewport tabindex="0" role="region" aria-label="Prototype photo gallery">
+            <button type="button" class="device-carousel__slide is-active" data-carousel-slide="0" aria-label="Show prototype photo 1">
+              <img src="assets/device%201%20.png" alt="Cheez.sEMG wearable prototype with strap and electrode pads" loading="lazy" decoding="async">
+            </button>
+            <button type="button" class="device-carousel__slide is-behind" data-carousel-slide="1" aria-label="Show prototype photo 2">
+              <img src="assets/device%202%20.png" alt="Cheez.sEMG sensor underside showing electrode snap connectors" loading="lazy" decoding="async">
+            </button>
           </div>
-          <strong>Wearable prototype documentation</strong>
-          <p>Prototype photos will be added after the final exhibition setup.</p>
+          <div class="device-carousel__dots" role="tablist" aria-label="Choose prototype photo">
+            <button type="button" role="tab" aria-selected="true" aria-label="Photo 1" data-carousel-dot="0"></button>
+            <button type="button" role="tab" aria-selected="false" aria-label="Photo 2" data-carousel-dot="1"></button>
+          </div>
+          <p class="device-carousel__hint">Swipe or tap the edge to switch views</p>
         </div>
       </div>
     </section>
