@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MyEMG compares local surface EMG activity from different exercises within one controlled electrode-placement session.">
+  <meta property="og:title" content="MyEMG — Within-session EMG Comparison">
+  <meta property="og:description" content="Compare local surface EMG across exercises in one controlled electrode-placement session.">
+  <meta property="og:url" content="https://zcheng0319-dot.github.io/Muscle-Activation-Monitor/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://zcheng0319-dot.github.io/Muscle-Activation-Monitor/assets/device%201%20.png">
+  <meta name="twitter:card" content="summary_large_image">
   <title>MyEMG — Within-session EMG Comparison</title>
   <link rel="icon" type="image/png" href="assets/MyEmg icon  .png">
   <link rel="stylesheet" href="styles.css">
@@ -16,11 +22,16 @@
         <img src="assets/MyEmg icon  .png" alt="" width="38" height="38">
         <span>MyEMG</span>
       </a>
-      <nav class="nav-links" aria-label="Main navigation">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="Toggle navigation" data-nav-toggle>
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links" id="primary-navigation" aria-label="Main navigation" data-nav-menu>
         <a href="#overview">Overview</a>
         <a href="#how-it-works">How it works</a>
         <a href="#features">Features</a>
-        <a class="nav-cta" href="#demo">View demo</a>
+        <a href="#prototype">Hardware</a>
+        <a href="#app-preview">App</a>
+        <a class="nav-cta" href="#demo">Workflow</a>
       </nav>
     </div>
   </header>
@@ -37,7 +48,7 @@
             action in the session on the same local reference.
           </p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#demo">View Demo <span aria-hidden="true">→</span></a>
+            <a class="button button-primary" href="#demo">See workflow <span aria-hidden="true">→</span></a>
             <a class="button button-secondary" href="#how-it-works">How It Works</a>
           </div>
           <div class="hero-meta" aria-label="Project highlights">
@@ -99,7 +110,7 @@
             <span>Flutter app</span>
           </div>
         </div>
-        <div class="limitations-card reveal">
+        <div class="limitations-card reveal" id="limitations">
           <span class="overview-label">Important limitations</span>
           <ul class="limitations-list">
             <li>Not MVC or muscle-force percentage — local adjusted envelope only.</li>
@@ -107,6 +118,7 @@
             <li>Higher EMG here does not prove an action is universally better or predicts muscle growth.</li>
             <li>If the signal hits the sensor limit during a heavy set, that action is rejected rather than scored.</li>
           </ul>
+          <p class="limitations-note">MyEMG is a dissertation prototype for controlled exercise comparison, not a medical device or training prescription tool.</p>
         </div>
       </div>
     </section>
@@ -161,6 +173,40 @@
       </div>
     </section>
 
+    <section class="section section-tinted" id="example-session">
+      <div class="container">
+        <div class="section-heading reveal">
+          <span class="section-kicker">Example session</span>
+          <h2>What one comparison looks like</h2>
+          <p>These illustrative values come from one biceps placement and calibration. They are not a universal ranking or training recommendation.</p>
+        </div>
+        <div class="example-table-wrap reveal">
+          <table class="example-table">
+            <thead>
+              <tr>
+                <th scope="col">Action</th>
+                <th scope="col">Median adjusted env</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Bicep Curl</td>
+                <td>142</td>
+                <td><span class="status-valid">Valid</span></td>
+              </tr>
+              <tr>
+                <td>Hammer Curl</td>
+                <td>118</td>
+                <td><span class="status-valid">Valid</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="example-note">Higher values apply only to this session and placement.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="section section-tinted" id="prototype">
       <div class="container split-section">
         <div class="split-copy reveal">
@@ -201,9 +247,16 @@
           <p>A full walkthrough will cover sensor placement, relaxed calibration, live envelope feedback, rep review and a two-action session result.</p>
         </div>
         <div class="video-placeholder reveal">
-          <div class="play-button" aria-hidden="true"><span></span></div>
           <strong>Demonstration video coming soon</strong>
           <p>Wearable setup, one calibration, action recording and session comparison</p>
+          <ol class="demo-workflow" aria-label="Demonstration workflow">
+            <li><span>1</span>Connect My_EMG over BLE</li>
+            <li><span>2</span>Select muscle and 2–4 actions</li>
+            <li><span>3</span>Complete one relaxed calibration</li>
+            <li><span>4</span>Record each action and review reps</li>
+            <li><span>5</span>Compare valid actions in this session</li>
+          </ol>
+          <p class="video-placeholder__note">A screen recording can be added here later without changing the page structure.</p>
           <a class="button button-secondary video-placeholder__link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
         </div>
       </div>
@@ -219,7 +272,7 @@
           </div>
           <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Biceps, Triceps, Legs or custom entries</small></div><b>Selected</b></div>
           <div class="flow-item"><span>2</span><div><strong>Select 2–4 actions</strong><small>Keep the same sensor placement for every action</small></div><b>Ready</b></div>
-          <div class="flow-item"><span>3</span><div><strong>Calibrate at rest</strong><small>Align the sensor with the muscle fibers</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>3</span><div><strong>Calibrate at rest</strong><small>Align the sensor with the muscle fibers</small></div><b>Done</b></div>
           <div class="flow-item"><span>4</span><div><strong>Record, review and compare</strong><small>Correct rep count, then view this session's ranking</small></div><b>Live</b></div>
         </div>
         <div class="split-copy reveal">
@@ -233,6 +286,20 @@
             <div><strong>Reps</strong><span>Correct or retest</span></div>
             <div><strong>Quality</strong><span>Loss and clipping checks</span></div>
             <div><strong>History</strong><span>Last 8 completed sessions</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section get-started" id="get-started">
+      <div class="container">
+        <div class="get-started-card reveal">
+          <span class="section-kicker">Open project</span>
+          <h2>Explore the project</h2>
+          <p>A local BLE prototype and Flutter app, built to compare exercises within one unchanged electrode-placement session.</p>
+          <div class="get-started-actions">
+            <a class="button button-primary" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+            <a class="button button-secondary" href="#how-it-works">Read workflow</a>
           </div>
         </div>
       </div>
@@ -268,11 +335,17 @@
         <img src="assets/MyEmg icon  .png" alt="" width="34" height="34">
         <span>MyEMG</span>
       </div>
-      <p>MyEMG — MSc Connected Environments Project (UCL CASA0022)</p>
-      <p>
-        Built by Cheng Zhong ·
+      <p class="footer-tagline">MSc Connected Environments · UCL CASA0022</p>
+      <p class="footer-links">
         <a class="footer-link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">GitHub</a>
+        ·
+        <a class="footer-link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor#readme" target="_blank" rel="noopener noreferrer">README</a>
+        ·
+        <a class="footer-link" href="#limitations">Limitations</a>
+        ·
+        <a class="footer-link" href="mailto:ucfnhon@ucl.ac.uk">Contact</a>
       </p>
+      <p class="footer-meta">© 2026 Cheng Zhong</p>
     </div>
   </footer>
 </body>
