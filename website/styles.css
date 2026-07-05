@@ -92,7 +92,6 @@ button {
 }
 
 .brand img,
-.hero-logo,
 .flow-header img {
   border-radius: 23%;
   box-shadow: 0 5px 15px rgba(37, 99, 235, 0.16);
@@ -151,7 +150,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   padding: 7px 12px;
   border: 1px solid #bfdbfe;
   border-radius: 999px;
@@ -165,10 +164,6 @@ button {
   border-radius: 50%;
   background: var(--success);
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
-}
-
-.hero-logo {
-  margin-bottom: 24px;
 }
 
 h1,
@@ -191,8 +186,15 @@ h1 {
   font-size: clamp(45px, 5.2vw, 72px);
 }
 
-h1 span {
-  color: var(--primary);
+.hero-copy h1,
+.hero-title {
+  max-width: 11.5em;
+  margin-bottom: 22px;
+  color: var(--text);
+  font-size: clamp(36px, 4.2vw, 56px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }
 
 h2 {
@@ -346,77 +348,81 @@ h3 {
   font-weight: 600;
 }
 
-.activation-ring {
-  width: 160px;
-  height: 160px;
-  display: grid;
-  place-items: center;
-  margin: 0 auto 25px;
-  border-radius: 50%;
-  background: conic-gradient(var(--primary) 72%, #e8eef6 0);
+.phone-recording {
+  text-align: left;
 }
 
-.activation-ring::before {
-  content: "";
-  grid-area: 1 / 1;
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  background: white;
+.phone-activity {
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #f8fafc;
+  text-align: left;
 }
 
-.activation-ring div {
-  z-index: 1;
-  grid-area: 1 / 1;
-}
-
-.activation-ring strong {
-  font-size: 43px;
-  letter-spacing: -0.06em;
-}
-
-.activation-ring span {
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.phone-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-}
-
-.phone-stats div {
-  padding: 11px 3px;
-  border-radius: 11px;
-  background: var(--background);
-}
-
-.phone-stats span,
-.phone-stats strong {
-  display: block;
-}
-
-.phone-stats span {
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.phone-stats strong {
-  margin-top: 3px;
+.phone-activity h3 {
+  margin-bottom: 11px;
   font-size: 14px;
 }
 
-.phone-content button {
+.phone-activity__chart {
+  height: 92px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: white;
+}
+
+.phone-activity__chart svg {
   width: 100%;
-  margin-top: 15px;
-  padding: 11px;
-  color: white;
-  border: 0;
-  border-radius: 11px;
-  background: var(--primary);
+  height: 100%;
+}
+
+.phone-activity__chart polyline {
+  fill: none;
+  stroke: var(--primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.phone-activity__reading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 11px;
+}
+
+.phone-activity__reading span {
+  color: var(--muted);
+}
+
+.phone-activity__reading strong {
   font-size: 12px;
-  font-weight: 700;
+}
+
+.phone-activity__progress {
+  height: 7px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+.phone-activity__progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.phone-activity > p {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
 }
 
 .signal-card {
@@ -515,6 +521,31 @@ h3 {
   text-align: center;
 }
 
+.limitations-card {
+  margin-top: 18px;
+  padding: 30px 34px;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius-md);
+  background: #fffbeb;
+  box-shadow: var(--shadow-sm);
+}
+
+.limitations-card .overview-label {
+  color: #a16207;
+}
+
+.limitations-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.limitations-list li::marker {
+  color: #d97706;
+}
+
 .steps-grid,
 .feature-grid {
   display: grid;
@@ -566,7 +597,7 @@ h3 {
 }
 
 .feature-grid {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .feature-card {
@@ -702,6 +733,10 @@ h3 {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-lg);
+}
+
+.video-placeholder__link {
+  margin-top: 22px;
 }
 
 .placeholder-mark {
@@ -939,6 +974,14 @@ h3 {
   font-size: 13px;
 }
 
+.footer-link {
+  color: var(--primary);
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
 /* Subtle entrance motion; content remains visible without JavaScript. */
 .js .reveal {
   opacity: 0;
@@ -1038,13 +1081,15 @@ h3 {
     padding: 58px 0 76px;
   }
 
-  .hero-logo {
-    width: 76px;
-    height: 76px;
-  }
-
   h1 {
     font-size: clamp(40px, 12.5vw, 56px);
+  }
+
+  .hero-copy h1,
+  .hero-title {
+    max-width: 12em;
+    font-size: clamp(32px, 9vw, 44px);
+    line-height: 1.14;
   }
 
   .hero-description {
@@ -1074,14 +1119,8 @@ h3 {
     width: 274px;
   }
 
-  .activation-ring {
-    width: 135px;
-    height: 135px;
-  }
-
-  .activation-ring::before {
-    width: 110px;
-    height: 110px;
+  .phone-activity__chart {
+    height: 82px;
   }
 
   .signal-card {
@@ -1093,6 +1132,10 @@ h3 {
   .overview-card {
     grid-template-columns: 1fr;
     padding: 28px;
+  }
+
+  .limitations-card {
+    padding: 25px 27px;
   }
 
   .overview-specs {

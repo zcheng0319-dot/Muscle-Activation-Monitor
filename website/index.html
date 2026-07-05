@@ -30,8 +30,7 @@
       <div class="container hero-grid">
         <div class="hero-copy reveal">
           <div class="eyebrow"><span class="status-dot"></span> Controlled within-session EMG comparison</div>
-          <img class="hero-logo" src="assets/MyEmg icon  .png" alt="MyEMG app logo" width="92" height="92">
-          <h1><span>MyEMG</span><br>Compare Exercises<br>Within One Session</h1>
+          <h1 class="hero-title">Compare exercises<br>within one session</h1>
           <p class="hero-description">
             MyEMG records local surface EMG activity while you test multiple exercises
             without changing electrode placement. One relaxed calibration keeps every
@@ -59,16 +58,21 @@
           <div class="phone">
             <div class="phone-top"><span>MyEMG</span><span class="connected"><i></i> My_EMG connected</span></div>
             <div class="phone-content">
-              <p>Example: Biceps comparison</p>
-              <div class="activation-ring">
-                <div><strong>255</strong><span>env</span></div>
+              <p class="phone-recording">Recording: Bicep Curl</p>
+              <div class="phone-activity">
+                <h3>Live local EMG activity</h3>
+                <div class="phone-activity__chart">
+                  <svg viewBox="0 0 260 104" role="img" aria-label="Example live adjusted-envelope curve">
+                    <polyline points="0,77 12,75 23,79 34,70 45,76 56,47 68,72 79,29 90,66 101,40 112,73 123,55 134,67 145,25 156,62 167,35 178,75 189,51 200,64 211,31 222,68 233,45 244,71 260,58"/>
+                  </svg>
+                </div>
+                <div class="phone-activity__reading">
+                  <span>Live display</span>
+                  <strong>36.5 env units</strong>
+                </div>
+                <div class="phone-activity__progress" aria-hidden="true"><span></span></div>
+                <p>Real-time feedback only — not used for ranking.</p>
               </div>
-              <div class="phone-stats">
-                <div><span>Action</span><strong>Curl</strong></div>
-                <div><span>Reps</span><strong>8</strong></div>
-                <div><span>Quality</span><strong>Good</strong></div>
-              </div>
-              <button type="button" tabindex="-1">Review this action</button>
             </div>
           </div>
         </div>
@@ -87,13 +91,22 @@
             <span class="overview-label">The solution</span>
             <h3>Keep every action on the same local reference</h3>
           </div>
-          <p>Choose a target muscle and at least two actions, complete one relaxed calibration, then record each action without moving the electrodes. Results use the median of valid repetition-level adjusted-envelope means and apply only to that session.</p>
+          <p>Choose a target muscle and 2–4 actions, complete one relaxed calibration, then record each action without moving the electrodes. Results use the median of valid repetition-level adjusted-envelope means and apply only to that session.</p>
           <div class="overview-specs">
             <span>Cheez.sEMG sensor</span>
             <span>XIAO ESP32C3</span>
             <span>BLE wireless</span>
             <span>Flutter app</span>
           </div>
+        </div>
+        <div class="limitations-card reveal">
+          <span class="overview-label">Important limitations</span>
+          <ul class="limitations-list">
+            <li>Not MVC or muscle-force percentage — local adjusted envelope only.</li>
+            <li>Valid only for one uninterrupted session with unchanged electrode placement.</li>
+            <li>Higher EMG here does not prove an action is universally better or predicts muscle growth.</li>
+            <li>If the signal hits the sensor limit during a heavy set, that action is rejected rather than scored.</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -107,13 +120,13 @@
         <div class="steps-grid">
           <article class="step-card reveal">
             <span class="step-number">01</span>
-            <h3>Choose a target muscle</h3>
-            <p>Select the target muscle and at least two actions to compare.</p>
+            <h3>Choose muscle and actions</h3>
+            <p>Select the target muscle and 2–4 actions using the default catalog or your own custom entries.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">02</span>
             <h3>Place and calibrate once</h3>
-            <p>Attach the electrodes, keep the muscle relaxed and establish the session baseline.</p>
+            <p>Align the sensor with the muscle fibers, attach the electrodes, keep the muscle relaxed and establish the session baseline.</p>
           </article>
           <article class="step-card reveal">
             <span class="step-number">03</span>
@@ -123,7 +136,7 @@
           <article class="step-card reveal">
             <span class="step-number">04</span>
             <h3>Review and compare</h3>
-            <p>Confirm reliable rep boundaries, then view this session's actions ordered by their local EMG metric.</p>
+            <p>Correct the detected rep count or discard and retest, then compare this session's valid actions.</p>
           </article>
         </div>
       </div>
@@ -139,9 +152,11 @@
           <article class="feature-card reveal"><span class="feature-icon">⇄</span><h3>Within-session Comparison</h3><p>Compare actions only while electrode placement and calibration remain unchanged.</p></article>
           <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Live Envelope Feedback</h3><p>Follow the adjusted-envelope curve and bar without treating either as the final score.</p></article>
           <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Relaxed Calibration</h3><p>Establish one local baseline that is reused throughout the comparison.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Rep Review</h3><p>Review detected repetitions and request a supported count before confirming an action.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">✓</span><h3>Signal-quality Gates</h3><p>Reject action windows affected by packet loss, clipping or insufficient quality data.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Rep Review</h3><p>Review detected repetitions, correct the count or discard and retest before confirming an action.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">✓</span><h3>Signal-quality Gates</h3><p>Reject action windows affected by packet loss, clipping or insufficient quality data. Heavy sets that hit the sensor limit are invalidated.</p></article>
           <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Session Results</h3><p>Order valid actions by their repetition-level local EMG metric for this session only.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">✎</span><h3>Exercise Catalog</h3><p>Add, rename or remove local muscle and action entries while keeping each session to 2–4 actions.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">◷</span><h3>Recent Comparisons</h3><p>Keep the latest 8 completed sessions locally as read-only history. Aborted sessions are not saved.</p></article>
         </div>
       </div>
     </section>
@@ -171,7 +186,7 @@
             <button type="button" role="tab" aria-selected="true" aria-label="Photo 1" data-carousel-dot="0"></button>
             <button type="button" role="tab" aria-selected="false" aria-label="Photo 2" data-carousel-dot="1"></button>
           </div>
-          <p class="device-carousel__hint">Swipe or tap the edge to switch views</p>
+          <p class="device-carousel__hint">Tap or swipe to switch</p>
         </div>
       </div>
     </section>
@@ -183,12 +198,13 @@
         <div class="section-heading centered reveal">
           <span class="section-kicker">Video demo</span>
           <h2>See MyEMG in action.</h2>
-          <p>The final demo will show sensor placement, relaxed calibration, live envelope feedback, rep review and a two-action session result.</p>
+          <p>A full walkthrough will cover sensor placement, relaxed calibration, live envelope feedback, rep review and a two-action session result.</p>
         </div>
         <div class="video-placeholder reveal">
           <div class="play-button" aria-hidden="true"><span></span></div>
-          <strong>Final project demonstration</strong>
+          <strong>Demonstration video coming soon</strong>
           <p>Wearable setup, one calibration, action recording and session comparison</p>
+          <a class="button button-secondary video-placeholder__link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
         </div>
       </div>
     </section>
@@ -201,21 +217,22 @@
             <div><strong>MyEMG</strong><span>Session ready</span></div>
             <i></i>
           </div>
-          <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Choose Biceps, Triceps or Legs</small></div><b>Selected</b></div>
-          <div class="flow-item"><span>2</span><div><strong>Calibrate at rest</strong><small>Set one local baseline for this placement</small></div><b>Ready</b></div>
-          <div class="flow-item"><span>3</span><div><strong>Record and compare</strong><small>Review reps and compare valid actions in this session</small></div><b>Live</b></div>
+          <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Biceps, Triceps, Legs or custom entries</small></div><b>Selected</b></div>
+          <div class="flow-item"><span>2</span><div><strong>Select 2–4 actions</strong><small>Keep the same sensor placement for every action</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>3</span><div><strong>Calibrate at rest</strong><small>Align the sensor with the muscle fibers</small></div><b>Ready</b></div>
+          <div class="flow-item"><span>4</span><div><strong>Record, review and compare</strong><small>Correct rep count, then view this session's ranking</small></div><b>Live</b></div>
         </div>
         <div class="split-copy reveal">
           <span class="section-kicker">App preview</span>
           <h2>Live feedback, then a session-scoped result.</h2>
-          <p>The app displays adjusted-envelope feedback during recording, segments repetitions and lets the user review the count. Valid actions are compared only within the current placement and calibration; the result is not a muscle-force percentage or a cross-session claim.</p>
+          <p>The app displays adjusted-envelope feedback during recording, segments repetitions and lets the user correct the count or discard and retest. Valid actions are compared only within the current placement and calibration, while Recent Comparisons keeps the latest 8 completed sessions locally as read-only history. The result is not a muscle-force percentage or a cross-session claim.</p>
           <div class="mini-metrics">
+            <div><strong>Catalog</strong><span>Local muscles and actions</span></div>
             <div><strong>Baseline</strong><span>Local rest reference</span></div>
             <div><strong>Envelope</strong><span>Live adjusted signal</span></div>
-            <div><strong>Reps</strong><span>Reviewed boundaries</span></div>
+            <div><strong>Reps</strong><span>Correct or retest</span></div>
             <div><strong>Quality</strong><span>Loss and clipping checks</span></div>
-            <div><strong>Median</strong><span>Valid rep means</span></div>
-            <div><strong>Results</strong><span>This session only</span></div>
+            <div><strong>History</strong><span>Last 8 completed sessions</span></div>
           </div>
         </div>
       </div>
@@ -234,11 +251,11 @@
           </article>
           <article class="stack-group">
             <h3>Firmware</h3>
-            <p>Arduino C++, ADC sampling, envelope processing, calibration routine and BLE notify/write.</p>
+            <p>Arduino C++, 500 Hz ADC sampling, envelope processing, rest calibration gates and BLE v2 JSON sample, quality and calibration packets.</p>
           </article>
           <article class="stack-group">
             <h3>App</h3>
-            <p>Flutter, Dart, BLE v2 identification, live envelope feedback, rep review and within-session comparison.</p>
+            <p>Flutter, Dart, rep segmentation and review, quality gating, within-session comparison, plus a local catalog and comparison history stored with SharedPreferences.</p>
           </article>
         </div>
       </div>
@@ -251,8 +268,11 @@
         <img src="assets/MyEmg icon  .png" alt="" width="34" height="34">
         <span>MyEMG</span>
       </div>
-      <p>MyEMG — MSc Connected Environments Project</p>
-      <p>Built by Cheng Zhong</p>
+      <p>MyEMG — MSc Connected Environments Project (UCL CASA0022)</p>
+      <p>
+        Built by Cheng Zhong ·
+        <a class="footer-link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </p>
     </div>
   </footer>
 </body>
