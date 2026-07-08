@@ -101,6 +101,8 @@ class ComparisonController extends Notifier<ComparisonState> {
   StreamSubscription<EmgQuality>? _qualitySubscription;
   StreamSubscription<EmgCalibration>? _calibrationSubscription;
   Timer? _calibrationTimeout;
+  static const double kMaximumActionClipRatio = 0.05;
+
   int _missingSamples = 0;
   double _maximumClipRatio = 0;
   int _qualityPacketCount = 0;
@@ -497,7 +499,7 @@ class ComparisonController extends Notifier<ComparisonState> {
     bool confidenceSufficient,
   ) {
     if (_missingSamples > 0) return 'packet_loss_detected';
-    if (_maximumClipRatio > 0) return 'clipping_detected';
+    if (_maximumClipRatio > kMaximumActionClipRatio) return 'clipping_detected';
     if (_qualityPacketCount == 0) return 'quality_unavailable';
     if (segmentationFailure != null) return segmentationFailure;
     if (!confidenceSufficient) return 'low_confidence';

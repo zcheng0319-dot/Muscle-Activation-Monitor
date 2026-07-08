@@ -486,6 +486,14 @@ class _ComparisonPageState extends ConsumerState<ComparisonPage>
               _friendlyError(trial.invalidReason ?? state.errorMessage!),
               style: AppTypography.label.copyWith(color: AppColors.red),
             ),
+          ] else if (trial.hasMinorClipping) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Minor signal clipping '
+              '(${(trial.maximumClipRatio * 100).toStringAsFixed(1)}%). '
+              'Results may be slightly less reliable.',
+              style: AppTypography.label.copyWith(color: AppColors.orange),
+            ),
           ],
           const SizedBox(height: AppSpacing.md),
           if (!trial.isValid)
@@ -806,7 +814,7 @@ class _ComparisonPageState extends ConsumerState<ComparisonPage>
       'calibration_quality_not_good' =>
         'Calibration signal quality was not good. Check the sensor and retry',
       'insufficient_samples' => 'Not enough valid samples',
-      'clipping_detected' => 'Signal clipping was detected',
+      'clipping_detected' => 'Severe signal clipping was detected',
       'packet_loss_detected' =>
         'BLE samples were lost. This action must be retested',
       'quality_unavailable' =>

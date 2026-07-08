@@ -91,6 +91,8 @@ class ActionTrial {
 
   bool get isValid => invalidReason == null && reps.isNotEmpty;
 
+  bool get hasMinorClipping => invalidReason == null && maximumClipRatio > 0;
+
   double? get medianRepMean {
     if (reps.isEmpty) return null;
     final values = reps.map((rep) => rep.meanAdjustedEnv).toList()..sort();

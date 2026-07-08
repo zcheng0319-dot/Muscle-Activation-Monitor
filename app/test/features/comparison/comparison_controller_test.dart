@@ -211,7 +211,7 @@ void main() {
     },
   );
 
-  test('clipping and missing quality packets invalidate an action', () {
+  test('severe clipping and missing quality packets invalidate an action', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final controller = container.read(comparisonControllerProvider.notifier);
@@ -223,8 +223,8 @@ void main() {
       const EmgQuality(
         deviceMs: 1000,
         rawSamples: 500,
-        nearRailSamples: 1,
-        clipRatio: 0.002,
+        nearRailSamples: 40,
+        clipRatio: 0.08,
       ),
     );
     _emitReps(controller, amplitudes: [30], includeQuality: false);
@@ -241,6 +241,32 @@ void main() {
     trial = container.read(comparisonControllerProvider).pendingTrial!;
     expect(trial.invalidReason, 'quality_unavailable');
     expect(controller.acceptCurrentAction(), isFalse);
+  });
+
+  test('minor clipping stays valid but is flagged', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final controller = container.read(comparisonControllerProvider.notifier);
+
+    controller.configure(targetMuscle: 'Biceps', actions: _actions);
+    _completeCalibration(controller);
+    controller.startCurrentAction();
+    controller.handleQualityForTesting(
+      const EmgQuality(
+        deviceMs: 1000,
+        rawSamples: 500,
+        nearRailSamples: 5,
+        clipRatio: 0.01,
+      ),
+    );
+    _emitReps(controller, amplitudes: [30], includeQuality: false);
+    controller.finishCurrentAction();
+
+    final trial = container.read(comparisonControllerProvider).pendingTrial!;
+    expect(trial.invalidReason, isNull);
+    expect(trial.isValid, isTrue);
+    expect(trial.hasMinorClipping, isTrue);
+    expect(controller.acceptCurrentAction(), isTrue);
   });
 
   test('calibration timeout returns to setup and permits retry', () {

@@ -1187,12 +1187,19 @@ class DeviceConnectionController extends Notifier<DeviceConnectionState> {
       );
     }).toList();
     devices.sort((a, b) {
-      final aPreferred = a.name.toLowerCase() == 'my_emg';
-      final bPreferred = b.name.toLowerCase() == 'my_emg';
+      final aPreferred = isPreferredDeviceName(a.name);
+      final bPreferred = isPreferredDeviceName(b.name);
       if (aPreferred != bPreferred) return aPreferred ? -1 : 1;
       return b.rssi.compareTo(a.rssi);
     });
     return devices;
+  }
+
+  static const _preferredDeviceNames = {'my_emg', 'myemg2'};
+
+  @visibleForTesting
+  static bool isPreferredDeviceName(String name) {
+    return _preferredDeviceNames.contains(name.toLowerCase());
   }
 
   Future<void> _stopScanQuietly() async {

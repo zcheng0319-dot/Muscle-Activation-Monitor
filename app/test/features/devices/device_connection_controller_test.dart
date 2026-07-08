@@ -219,6 +219,38 @@ void main() {
       },
     );
   });
+
+  group('preferred device names', () {
+    test('recognizes both My_EMG and myemg2 in any casing', () {
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('My_EMG'),
+        isTrue,
+      );
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('my_emg'),
+        isTrue,
+      );
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('myemg2'),
+        isTrue,
+      );
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('MyEMG2'),
+        isTrue,
+      );
+    });
+
+    test('rejects unrelated device names', () {
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('Unnamed BLE Device'),
+        isFalse,
+      );
+      expect(
+        DeviceConnectionController.isPreferredDeviceName('my_emg_3'),
+        isFalse,
+      );
+    });
+  });
 }
 
 List<int> _bytes(String value) => utf8.encode(value);
