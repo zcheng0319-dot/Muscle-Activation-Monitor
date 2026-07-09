@@ -29,6 +29,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <CheezsEMG.h>
+#include <esp_attr.h>
+#include <esp_system.h>
 
 #define EMG_PIN D0
 
@@ -43,8 +45,11 @@
 static const uint32_t kSampleRateHz = 500;
 static const uint32_t kSampleNotificationIntervalMs = 20;
 static const uint32_t kQualityNotificationIntervalMs = 1000;
-static const uint32_t kPowerStabilizationDelayMs = 300;
+static const uint32_t kPowerStabilizationDelayMs = 1000;
 static const uint32_t kAdvertisingCheckIntervalMs = 2000;
+static const uint32_t kRestartDelayMs = 250;
+static const uint32_t kMaxDeadAdvertisingChecks = 3;
+static const uint32_t kBootCounterMagic = 0x424F4F54;  // "BOOT"
 
 static const uint32_t kPrepareDurationMs = 2000;
 static const uint32_t kRestCalibrationDurationMs = 3000;
@@ -60,12 +65,18 @@ static const float kMaximumRestDriftFraction = 0.25f;
 static const int kEnvelopeHistogramSize = 4096;
 static const uint32_t kDriftWindowSamples = 500;
 
+// Survives SW/WDT/brown-out resets but not a true power cycle, so a
+// magic value distinguishes valid counts from random power-on garbage.
+RTC_NOINIT_ATTR uint32_t abnormalResetCounterMagic;
+RTC_NOINIT_ATTR uint32_t abnormalResetCounter;
+
 CheezsEMG emg(EMG_PIN, UNUSED_DETECT_PIN, kSampleRateHz);
 
 BLECharacteristic* emgCharacteristic = nullptr;
 BLEAdvertising* bleAdvertising = nullptr;
 
 volatile bool deviceConnected = false;
+volatile bool everConnected = false;
 volatile bool connectionStarted = false;
 volatile bool disconnectHandled = true;
 volatile bool restCalibrationRequested = false;
@@ -73,6 +84,7 @@ volatile bool restCalibrationRequested = false;
 uint32_t notificationSequence = 0;
 uint32_t lastSampleNotificationMs = 0;
 uint32_t lastAdvertisingCheckMs = 0;
+uint32_t deadAdvertisingChecks = 0;
 
 uint32_t qualityWindowStartedMs = 0;
 uint32_t qualityRawSamples = 0;
@@ -451,9 +463,66 @@ void updateQualityWindow(int raw, uint32_t nowMs) {
   notifyQuality(nowMs, rawSamples, nearRailSamples);
 }
 
+const char* resetReasonName(esp_reset_reason_t reason) {
+  switch (reason) {
+    case ESP_RST_POWERON:
+      return "POWERON";
+    case ESP_RST_BROWNOUT:
+      return "BROWNOUT";
+    case ESP_RST_SW:
+      return "SW";
+    case ESP_RST_INT_WDT:
+      return "INT_WDT";
+    case ESP_RST_TASK_WDT:
+      return "TASK_WDT";
+    case ESP_RST_WDT:
+      return "WDT";
+    case ESP_RST_PANIC:
+      return "PANIC";
+    case ESP_RST_DEEPSLEEP:
+      return "DEEPSLEEP";
+    case ESP_RST_EXT:
+      return "EXT";
+    default:
+      return "OTHER";
+  }
+}
+
+void reportBootDiagnostics() {
+  const esp_reset_reason_t reason = esp_reset_reason();
+
+  Serial.print("[boot] Reset reason: ");
+  Serial.print(static_cast<int>(reason));
+  Serial.print(" (");
+  Serial.print(resetReasonName(reason));
+  Serial.println(")");
+
+  if (abnormalResetCounterMagic != kBootCounterMagic) {
+    abnormalResetCounterMagic = kBootCounterMagic;
+    abnormalResetCounter = 0;
+  }
+
+  if (reason == ESP_RST_POWERON) {
+    abnormalResetCounter = 0;
+  } else {
+    abnormalResetCounter++;
+  }
+
+  Serial.print("[boot] Consecutive abnormal resets: ");
+  Serial.println(abnormalResetCounter);
+}
+
+void restartFirmware(const char* logMessage) {
+  Serial.println(logMessage);
+  Serial.flush();
+  delay(kRestartDelayMs);
+  esp_restart();
+}
+
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer*) override {
     deviceConnected = true;
+    everConnected = true;
     connectionStarted = true;
 
     Serial.println("BLE connected.");
@@ -491,16 +560,32 @@ void initializeBle() {
 
   Serial.println("[boot] Creating BLE server and service.");
   BLEServer* server = BLEDevice::createServer();
+
+  if (server == nullptr) {
+    restartFirmware(
+        "[boot] BLE server creation failed; restarting.");
+  }
+
   server->setCallbacks(new ServerCallbacks());
 
   BLEService* service =
       server->createService(SERVICE_UUID);
+
+  if (service == nullptr) {
+    restartFirmware(
+        "[boot] BLE service creation failed; restarting.");
+  }
 
   emgCharacteristic = service->createCharacteristic(
       EMG_CHAR_UUID,
       BLECharacteristic::PROPERTY_READ |
           BLECharacteristic::PROPERTY_NOTIFY |
           BLECharacteristic::PROPERTY_WRITE);
+
+  if (emgCharacteristic == nullptr) {
+    restartFirmware(
+        "[boot] BLE characteristic creation failed; restarting.");
+  }
 
   emgCharacteristic->addDescriptor(new BLE2902());
   emgCharacteristic->setCallbacks(new CommandCallbacks());
@@ -513,6 +598,11 @@ void initializeBle() {
   Serial.println("[boot] BLE service started.");
 
   bleAdvertising = BLEDevice::getAdvertising();
+
+  if (bleAdvertising == nullptr) {
+    restartFirmware(
+        "[boot] BLE advertising object missing; restarting.");
+  }
 
   bleAdvertising->addServiceUUID(SERVICE_UUID);
   bleAdvertising->setScanResponse(true);
@@ -530,16 +620,36 @@ void ensureAdvertising(uint32_t nowMs) {
 
   lastAdvertisingCheckMs = nowMs;
 
-  if (!bleAdvertising->isAdvertising()) {
-    Serial.println("[BLE] Advertising stopped; restarting.");
-    bleAdvertising->start();
+  if (bleAdvertising->isAdvertising()) {
+    deadAdvertisingChecks = 0;
+    return;
   }
+
+  deadAdvertisingChecks++;
+
+  Serial.print("[BLE] Advertising stopped; restarting (check ");
+  Serial.print(deadAdvertisingChecks);
+  Serial.println(").");
+
+  // Only self-reset while the device has never been connected since
+  // boot: a stack that is dead on arrival needs a full restart, but a
+  // board in active use must not reboot on a transient glitch.
+  if (!everConnected &&
+      deadAdvertisingChecks >= kMaxDeadAdvertisingChecks) {
+    restartFirmware(
+        "[watchdog] BLE never connected and advertising dead; "
+        "restarting.");
+  }
+
+  bleAdvertising->start();
 }
 
 void setup() {
   Serial.begin(115200);
   delay(kPowerStabilizationDelayMs);
   Serial.println("[boot] Power stabilization delay complete.");
+
+  reportBootDiagnostics();
 
   initializeBle();
 
