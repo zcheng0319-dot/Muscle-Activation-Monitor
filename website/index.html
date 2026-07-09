@@ -30,8 +30,7 @@
         <a href="#how-it-works">How it works</a>
         <a href="#features">Features</a>
         <a href="#prototype">Hardware</a>
-        <a href="#app-preview">App</a>
-        <a class="nav-cta" href="#demo">Workflow</a>
+        <a class="nav-cta" href="#get-started">Get started</a>
       </nav>
     </div>
   </header>
@@ -48,8 +47,8 @@
             action in the session on the same local reference.
           </p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#demo">See workflow <span aria-hidden="true">→</span></a>
-            <a class="button button-secondary" href="#how-it-works">How It Works</a>
+            <a class="button button-primary" href="#how-it-works">See how it works <span aria-hidden="true">→</span></a>
+            <a class="button button-secondary" href="#get-started">View project</a>
           </div>
           <div class="hero-meta" aria-label="Project highlights">
             <span><strong>Wearable</strong> EMG device</span>
@@ -127,176 +126,8 @@
       <div class="container">
         <div class="section-heading reveal">
           <span class="section-kicker">How it works</span>
-          <h2>Four steps. One controlled comparison.</h2>
-        </div>
-        <div class="steps-grid">
-          <article class="step-card reveal">
-            <span class="step-number">01</span>
-            <h3>Choose muscle and actions</h3>
-            <p>Select the target muscle and 2–4 actions using the default catalog or your own custom entries.</p>
-          </article>
-          <article class="step-card reveal">
-            <span class="step-number">02</span>
-            <h3>Place and calibrate once</h3>
-            <p>Align the sensor with the muscle fibers, attach the electrodes, keep the muscle relaxed and establish the session baseline.</p>
-          </article>
-          <article class="step-card reveal">
-            <span class="step-number">03</span>
-            <h3>Record each action</h3>
-            <p>Use the live adjusted-envelope curve and feedback bar while moving at your own rhythm.</p>
-          </article>
-          <article class="step-card reveal">
-            <span class="step-number">04</span>
-            <h3>Review and compare</h3>
-            <p>Correct the detected rep count or discard and retest, then compare this session's valid actions.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="features">
-      <div class="container">
-        <div class="section-heading reveal">
-          <span class="section-kicker">Key features</span>
-          <h2>Everything needed for a focused session.</h2>
-        </div>
-        <div class="feature-grid">
-          <article class="feature-card reveal"><span class="feature-icon">⇄</span><h3>Within-session Comparison</h3><p>Compare actions only while electrode placement and calibration remain unchanged.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Live Envelope Feedback</h3><p>Follow the adjusted-envelope curve and bar without treating either as the final score.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Relaxed Calibration</h3><p>Establish one local baseline that is reused throughout the comparison.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Rep Review</h3><p>Review detected repetitions, correct the count or discard and retest before confirming an action.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">✓</span><h3>Signal-quality Gates</h3><p>Reject action windows affected by packet loss, clipping or insufficient quality data. Heavy sets that hit the sensor limit are invalidated.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">▦</span><h3>Session Results</h3><p>Order valid actions by their repetition-level local EMG metric for this session only.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">✎</span><h3>Exercise Catalog</h3><p>Add, rename or remove local muscle and action entries while keeping each session to 2–4 actions.</p></article>
-          <article class="feature-card reveal"><span class="feature-icon">◷</span><h3>Recent Comparisons</h3><p>Keep the latest 8 completed sessions locally as read-only history. Aborted sessions are not saved.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-tinted" id="example-session">
-      <div class="container">
-        <div class="section-heading reveal">
-          <span class="section-kicker">Example session</span>
-          <h2>What one comparison looks like</h2>
-          <p>These illustrative values come from one biceps placement and calibration. They are not a universal ranking or training recommendation.</p>
-        </div>
-        <div class="example-table-wrap reveal">
-          <table class="example-table">
-            <thead>
-              <tr>
-                <th scope="col">Action</th>
-                <th scope="col">Median adjusted env</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Bicep Curl</td>
-                <td>142</td>
-                <td><span class="status-valid">Valid</span></td>
-              </tr>
-              <tr>
-                <td>Hammer Curl</td>
-                <td>118</td>
-                <td><span class="status-valid">Valid</span></td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="example-note">Higher values apply only to this session and placement.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-tinted" id="prototype">
-      <div class="container split-section">
-        <div class="split-copy reveal">
-          <span class="section-kicker">Device / prototype</span>
-          <h2>Designed to move with you.</h2>
-          <p>The wearable prototype combines a Cheez.sEMG sensor, XIAO ESP32C3 board, battery power and a 3D-printed case designed to be attached to the arm.</p>
-          <ul class="check-list">
-            <li>Wearable target-muscle placement</li>
-            <li>Compact embedded hardware</li>
-            <li>Wireless, untethered feedback</li>
-          </ul>
-        </div>
-        <div class="device-carousel reveal" data-device-carousel>
-          <div class="device-carousel__viewport" data-carousel-viewport tabindex="0" role="region" aria-label="Prototype photo gallery">
-            <button type="button" class="device-carousel__slide is-active" data-carousel-slide="0" aria-label="Show prototype photo 1">
-              <img src="assets/device%201%20.png" alt="Cheez.sEMG wearable prototype with strap and electrode pads" loading="lazy" decoding="async">
-            </button>
-            <button type="button" class="device-carousel__slide is-behind" data-carousel-slide="1" aria-label="Show prototype photo 2">
-              <img src="assets/device%202%20.png" alt="Cheez.sEMG sensor underside showing electrode snap connectors" loading="lazy" decoding="async">
-            </button>
-          </div>
-          <div class="device-carousel__dots" role="tablist" aria-label="Choose prototype photo">
-            <button type="button" role="tab" aria-selected="true" aria-label="Photo 1" data-carousel-dot="0"></button>
-            <button type="button" role="tab" aria-selected="false" aria-label="Photo 2" data-carousel-dot="1"></button>
-          </div>
-          <p class="device-carousel__hint">Tap or swipe to switch</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIDEO DEMO SECTION: Replace the placeholder below with a local <video>
-         element or a YouTube embed when the demo is ready. -->
-    <section class="section" id="demo">
-      <div class="container">
-        <div class="section-heading centered reveal">
-          <span class="section-kicker">Video demo</span>
-          <h2>See MyEMG in action.</h2>
-          <p>A full walkthrough will cover sensor placement, relaxed calibration, live envelope feedback, rep review and a two-action session result.</p>
-        </div>
-        <div class="video-placeholder reveal">
-          <strong>Demonstration video coming soon</strong>
-          <p>Wearable setup, one calibration, action recording and session comparison</p>
-          <ol class="demo-workflow" aria-label="Demonstration workflow">
-            <li><span>1</span>Connect My_EMG over BLE</li>
-            <li><span>2</span>Select muscle and 2–4 actions</li>
-            <li><span>3</span>Complete one relaxed calibration</li>
-            <li><span>4</span>Record each action and review reps</li>
-            <li><span>5</span>Compare valid actions in this session</li>
-          </ol>
-          <p class="video-placeholder__note">A screen recording can be added here later without changing the page structure.</p>
-          <a class="button button-secondary video-placeholder__link" href="https://github.com/zcheng0319-dot/Muscle-Activation-Monitor" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-tinted" id="app-preview">
-      <div class="container split-section app-section">
-        <div class="app-flow reveal">
-          <div class="flow-header">
-            <img src="assets/MyEmg icon  .png" alt="" width="44" height="44">
-            <div><strong>MyEMG</strong><span>Session ready</span></div>
-            <i></i>
-          </div>
-          <div class="flow-item"><span>1</span><div><strong>Select a target muscle</strong><small>Biceps, Triceps, Legs or custom entries</small></div><b>Selected</b></div>
-          <div class="flow-item"><span>2</span><div><strong>Select 2–4 actions</strong><small>Keep the same sensor placement for every action</small></div><b>Ready</b></div>
-          <div class="flow-item"><span>3</span><div><strong>Calibrate at rest</strong><small>Align the sensor with the muscle fibers</small></div><b>Done</b></div>
-          <div class="flow-item"><span>4</span><div><strong>Record, review and compare</strong><small>Correct rep count, then view this session's ranking</small></div><b>Live</b></div>
-        </div>
-        <div class="split-copy reveal">
-          <span class="section-kicker">App preview</span>
-          <h2>Live feedback, then a session-scoped result.</h2>
-          <p>The app displays adjusted-envelope feedback during recording, segments repetitions and lets the user correct the count or discard and retest. Valid actions are compared only within the current placement and calibration, while Recent Comparisons keeps the latest 8 completed sessions locally as read-only history. The result is not a muscle-force percentage or a cross-session claim.</p>
-          <div class="mini-metrics">
-            <div><strong>Catalog</strong><span>Local muscles and actions</span></div>
-            <div><strong>Baseline</strong><span>Local rest reference</span></div>
-            <div><strong>Envelope</strong><span>Live adjusted signal</span></div>
-            <div><strong>Reps</strong><span>Correct or retest</span></div>
-            <div><strong>Quality</strong><span>Loss and clipping checks</span></div>
-            <div><strong>History</strong><span>Last 8 completed sessions</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="app-walkthrough">
-      <div class="container">
-        <div class="section-heading reveal">
-          <span class="section-kicker">App walkthrough</span>
           <h2>One session, screen by screen.</h2>
-          <p>Real screens from the app, in the order you use them: connect the sensor, set up 2–4 actions, record with live feedback, review the session result and revisit recent comparisons.</p>
+          <p>Real screens from the app, in the order you use them: connect the sensor, set up 2–4 actions, record with live feedback, then review and revisit results.</p>
         </div>
         <div class="walkthrough-grid">
           <article class="walkthrough-card reveal">
@@ -348,6 +179,53 @@
             <strong>No sensor, no session</strong>
             <p>Compare will not start without a live connection. If My_EMG is not connected, the app points back to Devices before a comparison can begin.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-heading reveal">
+          <span class="section-kicker">Key features</span>
+          <h2>Everything needed for a focused session.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card reveal"><span class="feature-icon">⇄</span><h3>Within-session Comparison</h3><p>Compare actions only while electrode placement and calibration remain unchanged.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">▥</span><h3>Live Envelope Feedback</h3><p>Follow the adjusted-envelope curve and bar without treating either as the final score.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">↻</span><h3>Relaxed Calibration</h3><p>Establish one local baseline that is reused throughout the comparison.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon wave-icon">⌁</span><h3>Rep Review</h3><p>Review detected repetitions, correct the count or discard and retest before confirming an action.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">✓</span><h3>Signal-quality Gates</h3><p>Reject action windows affected by packet loss, clipping or insufficient quality data. Heavy sets that hit the sensor limit are invalidated.</p></article>
+          <article class="feature-card reveal"><span class="feature-icon">◷</span><h3>Recent Comparisons</h3><p>Keep the latest 8 completed sessions locally as read-only history. Aborted sessions are not saved.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tinted" id="prototype">
+      <div class="container split-section">
+        <div class="split-copy reveal">
+          <span class="section-kicker">Device / prototype</span>
+          <h2>Designed to move with you.</h2>
+          <p>The wearable prototype combines a Cheez.sEMG sensor, XIAO ESP32C3 board, battery power and a 3D-printed case designed to be attached to the arm.</p>
+          <ul class="check-list">
+            <li>Wearable target-muscle placement</li>
+            <li>Compact embedded hardware</li>
+            <li>Wireless, untethered feedback</li>
+          </ul>
+        </div>
+        <div class="device-carousel reveal" data-device-carousel>
+          <div class="device-carousel__viewport" data-carousel-viewport tabindex="0" role="region" aria-label="Prototype photo gallery">
+            <button type="button" class="device-carousel__slide is-active" data-carousel-slide="0" aria-label="Show prototype photo 1">
+              <img src="assets/device%201%20.png" alt="Cheez.sEMG wearable prototype with strap and electrode pads" loading="lazy" decoding="async">
+            </button>
+            <button type="button" class="device-carousel__slide is-behind" data-carousel-slide="1" aria-label="Show prototype photo 2">
+              <img src="assets/device%202%20.png" alt="Cheez.sEMG sensor underside showing electrode snap connectors" loading="lazy" decoding="async">
+            </button>
+          </div>
+          <div class="device-carousel__dots" role="tablist" aria-label="Choose prototype photo">
+            <button type="button" role="tab" aria-selected="true" aria-label="Photo 1" data-carousel-dot="0"></button>
+            <button type="button" role="tab" aria-selected="false" aria-label="Photo 2" data-carousel-dot="1"></button>
+          </div>
+          <p class="device-carousel__hint">Tap or swipe to switch</p>
         </div>
       </div>
     </section>
