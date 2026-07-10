@@ -772,6 +772,22 @@ h3 {
   color: var(--success);
 }
 
+.demo-video-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #0f172a;
+  box-shadow: var(--shadow-lg);
+}
+
+.demo-video {
+  display: block;
+  width: 100%;
+  max-height: min(72vh, 640px);
+  margin: 0 auto;
+  background: #000;
+}
+
 .get-started {
   padding-block: 85px;
   background: var(--primary-soft);
