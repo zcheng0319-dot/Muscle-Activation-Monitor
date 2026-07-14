@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2563eb">
   <meta name="description" content="MyEMG compares local surface EMG activity from different exercises within one controlled electrode-placement session.">
   <meta property="og:title" content="MyEMG — Within-session EMG Comparison">
   <meta property="og:description" content="Compare local surface EMG across exercises in one controlled electrode-placement session.">
   <meta property="og:url" content="https://zcheng0319-dot.github.io/Muscle-Activation-Monitor/">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://zcheng0319-dot.github.io/Muscle-Activation-Monitor/assets/device%201%20.png">
+  <meta property="og:image" content="https://zcheng0319-dot.github.io/Muscle-Activation-Monitor/assets/device-1.png">
+  <meta property="og:image:width" content="1448">
+  <meta property="og:image:height" content="1086">
   <meta name="twitter:card" content="summary_large_image">
   <title>MyEMG — Within-session EMG Comparison</title>
-  <link rel="icon" type="image/png" href="assets/MyEmg icon  .png">
+  <link rel="icon" type="image/png" href="assets/myemg-icon.png">
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
 </head>
@@ -19,7 +22,7 @@
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="#top" aria-label="MyEMG home">
-        <img src="assets/MyEmg icon  .png" alt="" width="38" height="38">
+        <img src="assets/myemg-icon.png" alt="" width="38" height="38">
         <span>MyEMG</span>
       </a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="Toggle navigation" data-nav-toggle>
@@ -216,10 +219,10 @@
         <div class="device-carousel reveal" data-device-carousel>
           <div class="device-carousel__viewport" data-carousel-viewport tabindex="0" role="region" aria-label="Prototype photo gallery">
             <button type="button" class="device-carousel__slide is-active" data-carousel-slide="0" aria-label="Show prototype photo 1">
-              <img src="assets/device%201%20.png" alt="Cheez.sEMG wearable prototype with strap and electrode pads" loading="lazy" decoding="async">
+              <img src="assets/device-1.png" alt="Cheez.sEMG wearable prototype with strap and electrode pads" loading="lazy" decoding="async">
             </button>
             <button type="button" class="device-carousel__slide is-behind" data-carousel-slide="1" aria-label="Show prototype photo 2">
-              <img src="assets/device%202%20.png" alt="Cheez.sEMG sensor underside showing electrode snap connectors" loading="lazy" decoding="async">
+              <img src="assets/device-2.png" alt="Cheez.sEMG sensor underside showing electrode snap connectors" loading="lazy" decoding="async">
             </button>
           </div>
           <div class="device-carousel__dots" role="tablist" aria-label="Choose prototype photo">
@@ -239,7 +242,7 @@
           <p>Sensor placement, relaxed calibration, live envelope feedback and a within-session comparison.</p>
         </div>
         <div class="demo-video-wrap reveal">
-          <video class="demo-video" controls playsinline preload="metadata" poster="assets/device%201%20.png">
+          <video class="demo-video" controls playsinline preload="metadata" poster="assets/device-1.png">
             <source src="assets/demo-video.mp4" type="video/mp4">
             Your browser does not support embedded video. <a href="assets/demo-video.mp4">Download the demo</a>.
           </video>
@@ -288,7 +291,7 @@
   <footer class="site-footer">
     <div class="container footer-wrap">
       <div class="brand footer-brand">
-        <img src="assets/MyEmg icon  .png" alt="" width="34" height="34">
+        <img src="assets/myemg-icon.png" alt="" width="34" height="34">
         <span>MyEMG</span>
       </div>
       <p class="footer-tagline">MSc Connected Environments · UCL CASA0022</p>
@@ -301,7 +304,7 @@
         ·
         <a class="footer-link" href="mailto:ucfnhon@ucl.ac.uk">Contact</a>
       </p>
-      <p class="footer-meta">© 2026 Cheng Zhong</p>
+      <p class="footer-meta">© <span data-current-year>2026</span> Cheng Zhong</p>
     </div>
   </footer>
 </body>

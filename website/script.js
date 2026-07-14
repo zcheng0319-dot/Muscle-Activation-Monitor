@@ -107,6 +107,16 @@ function initDeviceCarousel() {
 
 document.addEventListener("DOMContentLoaded", initDeviceCarousel);
 
+function initCurrentYear() {
+  const year = document.querySelector("[data-current-year]");
+
+  if (year) {
+    year.textContent = String(new Date().getFullYear());
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initCurrentYear);
+
 function initNavigation() {
   const toggle = document.querySelector("[data-nav-toggle]");
   const menu = document.querySelector("[data-nav-menu]");
@@ -120,8 +130,12 @@ function initNavigation() {
     menu.classList.toggle("is-open", isOpen);
   }
 
+  function isMenuOpen() {
+    return toggle.getAttribute("aria-expanded") === "true";
+  }
+
   toggle.addEventListener("click", () => {
-    setMenuOpen(toggle.getAttribute("aria-expanded") !== "true");
+    setMenuOpen(!isMenuOpen());
   });
 
   menu.querySelectorAll("a").forEach((link) => {
@@ -129,9 +143,33 @@ function initNavigation() {
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
+    if (event.key === "Escape" && isMenuOpen()) {
       setMenuOpen(false);
       toggle.focus();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!isMenuOpen()) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (!toggle.contains(target) && !menu.contains(target)) {
+      setMenuOpen(false);
+    }
+  });
+
+  document.addEventListener("focusin", (event) => {
+    if (!isMenuOpen()) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (!toggle.contains(target) && !menu.contains(target)) {
+      setMenuOpen(false);
     }
   });
 
